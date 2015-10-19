@@ -27,7 +27,7 @@ private[ml] class Tagger extends Serializable {
   def read(filename: String): Unit = {
     val src = Source.fromFile(filename)
     val line = src.getLines()
-    var columns: Array[String] = _
+    var columns: Array[String] = null
     val s: Integer = x.size
     var r: Integer = ysize
     while(line.hasNext){
@@ -139,7 +139,7 @@ private[ml] class Tagger extends Serializable {
     cost = -node(x.length - 1)(result(x.length - 1)).bestCost
   }
 
-  def gradient(expected:Vector[Double]): Double = {
+  def gradient(expected:Array[Double]): Double = {
     var s: Double = 0.0
     var lNode: Node = null
     var rNode: Node = null

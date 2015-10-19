@@ -5,7 +5,7 @@ import scala.collection.mutable.Map
 
 private[ml] class FeatureIndex extends Serializable{
   var maxid: Integer = _
-  var alpha: Vector[Double] = _
+  var alpha: Array[Double] = _
   var alpha_float: Vector[Float] = _
   var cost_factor: Double = _
   var xsize: Integer = _
