@@ -11,7 +11,7 @@ private[ml] class Path extends Serializable{
     val path = new Path
     def getInstance: Path = {path}
   }
-  def calExpectation(expected : Vector[Double], Z: Double, size: Integer) = {
+  def calExpectation(expected : Array[Double], Z: Double, size: Integer) = {
     var c: Double = math.exp(lnode.alpha + cost + rnode.beta - Z)
     while(fvector(fIdx)!= -1) {
       expected(fvector(0) + lnode.y*size + rnode.y) += c

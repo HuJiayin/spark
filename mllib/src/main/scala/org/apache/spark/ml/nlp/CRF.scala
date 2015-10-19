@@ -19,7 +19,6 @@ private[spark] class CRF {
 
 
   def run(template: String, train: String)={
-    //readParameters(template, train)
     learn(template, train)
   }
 
@@ -27,8 +26,9 @@ private[spark] class CRF {
     var tagger:Tagger = new Tagger()
     val taggerList: Array[Tagger] = null
     val featureIndex: FeatureIndex = new FeatureIndex()
-    var line: Int = 0
     tagger.open(featureIndex)
+    featureIndex.openTemplate(template)
+    tagger.read(train)
     taggerList :+ tagger
     tagger = null
     featureIndex.shrink(freq)
@@ -37,7 +37,6 @@ private[spark] class CRF {
   }
 
   def runCRF(tagger: Array[Tagger], featureIndex: FeatureIndex, alpha: Array[Double]): Unit = {
-
     var diff: Double = 0.0
     var old_obj: Double = 1e37
     var converge: Int = 0
