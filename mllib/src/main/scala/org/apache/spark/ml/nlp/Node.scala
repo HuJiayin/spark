@@ -49,7 +49,7 @@ private[ml] class Node extends Serializable {
     }
   }
 
-  def calExpectation(expected : Vector[Double], Z: Double, size: Integer) = {
+  def calExpectation(expected : Array[Double], Z: Double, size: Integer) = {
     var c: Double = math.exp(alpha + cost + beta - Z)
     val pathObj: Path = new Path()
     while(fvector(fIdx)!= -1) {

@@ -203,7 +203,7 @@ private[ml] class FeatureIndex extends Serializable{
     tagger.x(idx)(col)
   }
 
-  def setAlpha(_alpha: Vector[Double]): Unit = {
+  def setAlpha(_alpha: Array[Double]): Unit = {
     alpha = _alpha
   }
 

@@ -4,7 +4,7 @@ import org.apache.spark.SparkContext
 import org.apache.spark.mllib.linalg.Vectors
 import org.apache.spark.mllib.optimization.{SquaredL2Updater, LogisticGradient, LBFGS}
 
-private[spark] class CRF extends Runnable {
+private[spark] class CRF {
   private val freq: Integer = 1
   private val maxiter: Integer = 100000
   private val cost: Double = 1.0
