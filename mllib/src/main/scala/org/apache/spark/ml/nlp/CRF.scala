@@ -1,8 +1,7 @@
 package org.apache.spark.ml.nlp
 
-import org.apache.spark.SparkContext
-import org.apache.spark.mllib.linalg.Vectors
-import org.apache.spark.mllib.optimization.{SquaredL2Updater, LogisticGradient, LBFGS}
+
+import org.apache.spark.annotation.DeveloperApi
 
 private[spark] class CRF {
   private val freq: Integer = 1
@@ -11,11 +10,11 @@ private[spark] class CRF {
   private val eta: Double = 0.0001
   //private val threadID: Integer = 1
   //private val modelFile: String = ""
-  private val C: Integer = 1 //Convert
+  private val C: Float = 1 //Convert
   //private val thrinkingSize = 20
   private val threadNum: Integer = Runtime.getRuntime.availableProcessors()
-  private val threadPool: Array[CRFThread] = _
-  @transient var sc: SparkContext = _
+  private val threadPool: Array[CRFThread] = null
+
 
 
   def run(template: String, train: String)={
@@ -41,11 +40,13 @@ private[spark] class CRF {
     var old_obj: Double = 1e37
     var converge: Int = 0
     var itr: Int = 0
-    val lbfgs = new LBFGS(new LogisticGradient, new SquaredL2Updater)
-      .setNumCorrections(1)
-      .setConvergenceTol(1e-12)
-      .setNumIterations(1)
-      .setRegParam(1.0)
+    var all: Int = 0
+    val lbfgs = new lbfgs()
+
+    for(i<-0 until tagger.length - 1){
+      all += tagger(i).x.size
+    }
+
     while(itr <= maxiter) {
       for (i <- 0 until threadNum) {
         threadPool(i).start_i = i
@@ -68,6 +69,8 @@ private[spark] class CRF {
         diff = math.abs(old_obj-threadPool(0).obj/old_obj)
       }
       old_obj = threadPool(0).obj
+      printf("iter=%d, terr=%e, serr=%e, act=%d, obj=%e,diff=%e", itr, 1.0*threadPool(0).err/all,
+        1.0*threadPool(0).zeroOne/tagger.size, featureIndex.maxid,threadPool(0).obj,diff)
       if(diff < eta){
         converge += 1
       } else {
@@ -76,11 +79,10 @@ private[spark] class CRF {
       if(converge == 3){
         itr = maxiter + 1 //break
       }
-      lbfgs.optimize(sc.parallelize(alpha,2),Vectors.dense(threadPool(0).expected))
+      lbfgs.lbfgs(featureIndex.maxid, alpha,threadPool(0).obj,threadPool(0).expected,C)
       itr += 1
     }
   }
-
 
 
   private[ml] class CRFThread extends Thread{
@@ -107,4 +109,12 @@ private[spark] class CRF {
 
   //def readParameters(template: String, train: String): Unit ={}
 
+}
+
+@DeveloperApi
+object CRF {
+  def runCRF(template: String, train: String) = {
+    val crf = new CRF()
+    crf.run(template, train)
+  }
 }

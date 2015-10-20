@@ -215,6 +215,7 @@ private[ml] class FeatureIndex extends Serializable{
 
   def calcCost(n: Node): Unit = {
     var c: Float = 0
+    var cd: Double = 0.0
     var idx: Int = 0
     n.cost = 0.0
     if(alpha_float.nonEmpty){
@@ -225,8 +226,8 @@ private[ml] class FeatureIndex extends Serializable{
       }
     } else if(alpha.nonEmpty){
       while(n.fvector(idx) != -1 ){
-        c += alpha(n.fvector(0) + n.y)
-        n.cost = c.toDouble
+        cd += alpha(n.fvector(0) + n.y)
+        n.cost = cd
         idx += 1
       }
     }
@@ -234,6 +235,7 @@ private[ml] class FeatureIndex extends Serializable{
 
   def calcCost(p: Path): Unit = {
     var c: Float = 0
+    var cd: Double = 0.0
     var idx: Int = 0
     p.cost = 0.0
     if(alpha_float.nonEmpty){
@@ -244,8 +246,8 @@ private[ml] class FeatureIndex extends Serializable{
       }
     } else if(alpha.nonEmpty){
       while(p.fvector(idx) != -1 ){
-        c += alpha(p.fvector(0) + p.lnode.y*y.length+p.rnode.y)
-        p.cost = c.toDouble
+        cd += alpha(p.fvector(0) + p.lnode.y*y.length+p.rnode.y)
+        p.cost = cd
         idx += 1
       }
     }
