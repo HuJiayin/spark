@@ -1,6 +1,21 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.spark.ml.nlp
-
-
 import org.apache.spark.annotation.DeveloperApi
 
 private[spark] class CRF {
@@ -8,21 +23,21 @@ private[spark] class CRF {
   private val maxiter: Integer = 100000
   private val cost: Double = 1.0
   private val eta: Double = 0.0001
-  //private val threadID: Integer = 1
-  //private val modelFile: String = ""
-  private val C: Float = 1 //Convert
-  //private val thrinkingSize = 20
+  // private val threadID: Integer = 1
+  // private val modelFile: String = ""
+  private val C: Float = 1
+  // Convert
+  // private val thrinkingSize = 20
   private val threadNum: Integer = Runtime.getRuntime.availableProcessors()
   private val threadPool: Array[CRFThread] = null
 
 
-
-  def run(template: String, train: String)={
+  def run(template: String, train: String): Unit = {
     learn(template, train)
   }
 
-  def learn(template: String, train: String): Unit ={
-    var tagger:Tagger = new Tagger()
+  def learn(template: String, train: String): Unit = {
+    var tagger: Tagger = new Tagger()
     val taggerList: Array[Tagger] = null
     val featureIndex: FeatureIndex = new FeatureIndex()
     tagger.open(featureIndex)
@@ -41,13 +56,13 @@ private[spark] class CRF {
     var converge: Int = 0
     var itr: Int = 0
     var all: Int = 0
-    val lbfgs = new lbfgs()
+    val lbfgs = new Lbfgs()
 
-    for(i<-0 until tagger.length - 1){
+    for (i <- 0 until tagger.length - 1) {
       all += tagger(i).x.size
     }
 
-    while(itr <= maxiter) {
+    while (itr <= maxiter) {
       for (i <- 0 until threadNum) {
         threadPool(i).start_i = i
         threadPool(i).size = tagger.size
@@ -63,29 +78,31 @@ private[spark] class CRF {
           threadPool(0).expected(k) += alpha(k) / C
         }
       }
-      if(itr==0){
+      if (itr == 0) {
         diff = 1.0
       } else {
-        diff = math.abs(old_obj-threadPool(0).obj/old_obj)
+        diff = math.abs(old_obj - threadPool(0).obj / old_obj)
       }
       old_obj = threadPool(0).obj
-      printf("iter=%d, terr=%e, serr=%e, act=%d, obj=%e,diff=%e", itr, 1.0*threadPool(0).err/all,
-        1.0*threadPool(0).zeroOne/tagger.size, featureIndex.maxid,threadPool(0).obj,diff)
-      if(diff < eta){
+      printf("iter=%d, terr=%e, serr=%e, act=%d, obj=%e,diff=%e",
+        itr, 1.0 * threadPool(0).err / all,
+        1.0 * threadPool(0).zeroOne / tagger.size, featureIndex.maxid,
+        threadPool(0).obj, diff)
+      if (diff < eta) {
         converge += 1
       } else {
         converge = 0
       }
-      if(converge == 3){
-        itr = maxiter + 1 //break
+      if (converge == 3) {
+        itr = maxiter + 1 // break
       }
-      lbfgs.lbfgs(featureIndex.maxid, alpha,threadPool(0).obj,threadPool(0).expected,C)
+      lbfgs.lbfgs(featureIndex.maxid, alpha, threadPool(0).obj, threadPool(0).expected, C)
       itr += 1
     }
   }
 
 
-  private[ml] class CRFThread extends Thread{
+  private[ml] class CRFThread extends Thread {
     var x: Array[Tagger] = _
     var start_i: Int = 0
     var err: Int = 0
@@ -107,13 +124,13 @@ private[spark] class CRF {
     }
   }
 
-  //def readParameters(template: String, train: String): Unit ={}
+  // def readParameters(template: String, train: String): Unit ={}
 
 }
 
 @DeveloperApi
 object CRF {
-  def runCRF(template: String, train: String) = {
+  def runCRF(template: String, train: String): Unit = {
     val crf = new CRF()
     crf.run(template, train)
   }

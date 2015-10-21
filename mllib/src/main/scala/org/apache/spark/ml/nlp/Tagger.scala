@@ -1,9 +1,26 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.spark.ml.nlp
 
 import scala.io.Source
 
 private[ml] class Tagger extends Serializable {
-  var mode: Integer = 2 //LEARN
+  var mode: Integer = 2
+  // LEARN
   var vlevel: Integer = _
   var nbest: Integer = _
   var ysize: Integer = _
@@ -19,7 +36,7 @@ private[ml] class Tagger extends Serializable {
   var result: Array[Integer] = _
   val MINUS_LOG_EPSILON = 50
 
-  def open(featureIndex: FeatureIndex) = {
+  def open(featureIndex: FeatureIndex): Unit = {
     feature_idx = featureIndex
     ysize = feature_idx.y.size
   }
@@ -30,22 +47,23 @@ private[ml] class Tagger extends Serializable {
     var columns: Array[String] = null
     val s: Integer = x.size
     var r: Integer = ysize
-    while(line.hasNext){
-      if(line.toString().charAt(0) != '\0'
+    while (line.hasNext) {
+      if (line.toString().charAt(0) != '\0'
         && line.toString().charAt(0) != ' '
-        && line.toString().charAt(0) != '\t'){
+        && line.toString().charAt(0) != '\t') {
         columns = line.toString().split('\t')
-        for(i<-0 until columns.length - 1){
-          x(s):+columns
+        for (i <- 0 until columns.length - 1) {
+          x(s) :+ columns
         }
 
-        if(mode == 2) {  //LEARN
+        if (mode == 2) {
+          // LEARN
           for (i <- 0 until ysize) {
             if (feature_idx.y(i) == columns(feature_idx.xsize)) {
               r = i
             }
           }
-          answer.updated(s,r)
+          answer.updated(s, r)
         }
       }
     }
@@ -60,8 +78,8 @@ private[ml] class Tagger extends Serializable {
   }
 
   def buildLattice(): Unit = {
-    if(x.isEmpty) {
-      //rebuildFeatures
+    if (x.isEmpty) {
+      // rebuildFeatures
       for (i <- 0 until x.length - 1) {
         for (j <- 0 until ysize) {
           feature_idx.calcCost(node(i)(j))
@@ -71,24 +89,24 @@ private[ml] class Tagger extends Serializable {
         }
       }
     }
-    if(penalty.nonEmpty){
-      for(i<-0 until x.length - 1 ){
-        for(j<-0 until ysize){
+    if (penalty.nonEmpty) {
+      for (i <- 0 until x.length - 1) {
+        for (j <- 0 until ysize) {
           node(i)(j).cost += penalty(i)(j)
         }
       }
     }
   }
 
-  def forwardBackward(): Unit ={
+  def forwardBackward(): Unit = {
     var idx: Int = x.length - 1
-    if(x.nonEmpty){
-      for(i<-0 until x.length - 1){
-        for(j<-0 until ysize){
+    if (x.nonEmpty) {
+      for (i <- 0 until x.length - 1) {
+        for (j <- 0 until ysize) {
           node(i)(j).calcAlpha()
         }
       }
-      while(idx >= 0) {
+      while (idx >= 0) {
         for (j <- 0 until ysize) {
           node(idx)(j).calcBeta()
           idx -= 1
@@ -96,27 +114,27 @@ private[ml] class Tagger extends Serializable {
       }
       Z = 0.0
       for (i <- 0 until ysize) {
-        Z = logsumexp(Z, node(0)(i).beta, i==0)
+        Z = logsumexp(Z, node(0)(i).beta, i == 0)
       }
     }
   }
 
-  def viterbi(): Unit={
+  def viterbi(): Unit = {
     var bestc: Double = -1e37
     var best: Node = null
     var cost: Double = 0.0
     var nd: Node = null
-    for(i<-0 until x.length - 1){
-      for(j<-0 until ysize){
-        for(k<-0 until node(i)(j).lpath.length - 1){
+    for (i <- 0 until x.length - 1) {
+      for (j <- 0 until ysize) {
+        for (k <- 0 until node(i)(j).lpath.length - 1) {
           cost = node(i)(j).lpath(k).lnode.bestCost
-            + node(i)(j).lpath(k).lnode.cost + node(i)(j).cost
-          if(cost > bestc){
+          +node(i)(j).lpath(k).lnode.cost + node(i)(j).cost
+          if (cost > bestc) {
             bestc = cost
             best = node(i)(j).lpath(k).lnode
           }
           node(i)(j).prev = best
-          if(best!=null){
+          if (best != null) {
             node(i)(j).cost = bestc
           } else {
             node(i)(j).cost = node(i)(j).cost
@@ -125,51 +143,51 @@ private[ml] class Tagger extends Serializable {
       }
     }
     bestc = -1e37
-    for(j<-0 until ysize){
-      if(node(x.length - 1)(j).bestCost > bestc){
+    for (j <- 0 until ysize) {
+      if (node(x.length - 1)(j).bestCost > bestc) {
         best = node(x.length - 1)(j)
         bestc = node(x.length - 1)(j).bestCost
       }
     }
     nd = best
-    while(nd!=null){
+    while (nd != null) {
       result(nd.x) = nd.y
       nd = nd.prev
     }
     cost = -node(x.length - 1)(result(x.length - 1)).bestCost
   }
 
-  def gradient(expected:Array[Double]): Double = {
+  def gradient(expected: Array[Double]): Double = {
     var s: Double = 0.0
     var lNode: Node = null
     var rNode: Node = null
     var lPath: Path = null
     var idx: Int = 0
 
-    if(x.isEmpty){
+    if (x.isEmpty) {
       0.0
     }
     buildLattice()
     forwardBackward()
 
-    for(i<-0 until x.length - 1){
-      for(j<-0 until ysize){
-        node(i)(j).calExpectation(expected,Z,ysize)
+    for (i <- 0 until x.length - 1) {
+      for (j <- 0 until ysize) {
+        node(i)(j).calExpectation(expected, Z, ysize)
       }
     }
-    for(row<-0 until x.length - 1){
-      while(node(row)(answer(row)).fvector(idx) != -1){
+    for (row <- 0 until x.length - 1) {
+      while (node(row)(answer(row)).fvector(idx) != -1) {
         expected(node(row)(answer(row)).fvector(0) + answer(row)) -= 1
         idx += 1
       }
       s += node(row)(answer(row)).cost
-      for(i<-0 until node(row)(answer(row)).lpath.length - 1){
+      for (i <- 0 until node(row)(answer(row)).lpath.length - 1) {
         lNode = node(row)(answer(row)).lpath(i).lnode
         rNode = node(row)(answer(row)).lpath(i).rnode
         lPath = node(row)(answer(row)).lpath(i)
-        if(lNode.y == answer(lNode.x)){
-          while(lPath.fvector(idx)!= -1){
-            expected(lPath.fvector(0) + lNode.y*ysize + rNode.y) -= 1
+        if (lNode.y == answer(lNode.x)) {
+          while (lPath.fvector(idx) != -1) {
+            expected(lPath.fvector(0) + lNode.y * ysize + rNode.y) -= 1
             idx += 1
           }
           s += lPath.cost
@@ -177,28 +195,27 @@ private[ml] class Tagger extends Serializable {
       }
     }
     viterbi()
-    Z -s
+    Z - s
   }
 
   def eval(): Int = {
     var err: Int = 0
-    for(i<-0 until x.length - 1){
-      if(answer(i)!=result(i)){
+    for (i <- 0 until x.length - 1) {
+      if (answer(i) != result(i)) {
         err += 1
       }
     }
     err
   }
 
-  def logsumexp(x:Double,y:Double, flg:Boolean): Double={
-    if(flg) return y
-    val vMin: Double = math.min(x,y)
-    val vMax: Double = math.max(x,y)
-    if(vMax > vMin + MINUS_LOG_EPSILON)
-    {
+  def logsumexp(x: Double, y: Double, flg: Boolean): Double = {
+    if (flg) return y
+    val vMin: Double = math.min(x, y)
+    val vMax: Double = math.max(x, y)
+    if (vMax > vMin + MINUS_LOG_EPSILON) {
       vMax
     } else {
-      vMax + math.log(math.exp(vMin-vMax) + 1.0)
+      vMax + math.log(math.exp(vMin - vMax) + 1.0)
     }
   }
 }

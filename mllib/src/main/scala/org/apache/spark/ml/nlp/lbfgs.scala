@@ -1,6 +1,22 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.spark.ml.nlp
 
-private[ml] class lbfgs {
+private[ml] class Lbfgs {
 
   private var w: Array[Double] = _
   private var v: Array[Double] = _
@@ -19,34 +35,32 @@ private[ml] class lbfgs {
   private var nfev: Int = 0
   private var stp: Double = 1.0
   private var continue: Boolean = true
-  private val eps: Double  = 1e-7
+  private val eps: Double = 1e-7
   private var dginit: Double = 0.0
-  private var infoc: Int  = 0
-  private var brackt: Boolean  = false
-  private var stage1: Boolean  = false
+  private var infoc: Int = 0
+  private var brackt: Boolean = false
+  private var stage1: Boolean = false
   private var finit: Double = 0.0
   private var dgtest: Double = 0.0
   private val ftol: Double = 1e-4
-  private val p5:Double = 0.5
-  private val p66:Double = 0.66
-  private val xtrapf:Double = 4.0
-  private val maxfev:Int = 20
-  private var width:Double = 0.0
-  private var width1:Double = 0.0
-  private var stx:Double = 0.0
-  private var fx:Double = 0.0
-  private var dgx:Double = 0.0
-  private var sty:Double = 0.0
-  private var fy:Double = 0.0
-  private var dgy:Double = 0.0
-  private var contadj:Boolean = true
-  private var stmin:Double = 0.0
-  private var stmax:Double = 0.0
+  private val p5: Double = 0.5
+  private val p66: Double = 0.66
+  private val xtrapf: Double = 4.0
+  private val maxfev: Int = 20
+  private var width: Double = 0.0
+  private var width1: Double = 0.0
+  private var stx: Double = 0.0
+  private var fx: Double = 0.0
+  private var dgx: Double = 0.0
+  private var sty: Double = 0.0
+  private var fy: Double = 0.0
+  private var dgy: Double = 0.0
+  private var contadj: Boolean = true
+  private var stmin: Double = 0.0
+  private var stmax: Double = 0.0
 
 
-
-
-  def lbfgs(size: Int, x: Array[Double], f: Double, g: Array[Double], C: Float):Unit={
+  def lbfgs(size: Int, x: Array[Double], f: Double, g: Array[Double], C: Float): Unit = {
     val msize: Int = 5
     var bound: Int = 0
     var ys: Double = 0.0
@@ -61,13 +75,13 @@ private[ml] class lbfgs {
       ispt = size + (msize << 1)
       iypt = ispt + size * msize
       for (i <- 1 until size) {
-        w(ispt + i) = -g(i) * diag(i) //v=>g=>expected
+        w(ispt + i) = -g(i) * diag(i)
       }
-      stp1 = 1.0 / math.sqrt(ddot(size, g, 1, g,1))
+      stp1 = 1.0 / math.sqrt(ddot(size, g, 1, g, 1))
     }
     while (continue) {
 
-      if(iflag != 1 && iflag != 2) {
+      if (iflag != 1 && iflag != 2) {
         iter += 1
         info = 0
         if (iter == 1) {
@@ -128,17 +142,17 @@ private[ml] class lbfgs {
           w(ispt + point * size + i) = w(i)
         }
       }
-      if(iflag == 1) {
-        //parameter adjustment begin//////////////////////////////////////////////////////
-        if(info == -1){
+      if (iflag == 1) {
+        // parameter adjustment begin//////////////////////////////////////////////////////
+        if (info == -1) {
 
         }
         infoc = 1
-        if(size <= 0 || stp <= 0.0){
+        if (size <= 0 || stp <= 0.0) {
           return
         }
         dginit = ddot(size, g, 1, w, 1)
-        if(dginit >= 0.0) return
+        if (dginit >= 0.0) return
         brackt = false
         stage1 = true
         nfev = 0
@@ -146,7 +160,7 @@ private[ml] class lbfgs {
         dgtest = ftol * dginit
         width = 1e20 - 1e-20
         width1 = width / p5
-        for (j<-1 until size) {
+        for (j <- 1 until size) {
           diag(j) = x(j)
         }
         stx = 0.0
@@ -155,13 +169,13 @@ private[ml] class lbfgs {
         sty = 0.0
         fy = finit
         dgy = dginit
-        while(contadj){
-          if(info != -1){
+        while (contadj) {
+          if (info != -1) {
             stmin = stx
             stmax = stp + xtrapf * (stp - stx)
             stp = math.max(stp, 1e-20)
             stp = math.min(stp, 1e20)
-            for (j<-1 until size) {
+            for (j <- 1 until size) {
               x(j) = diag(j) + stp * w(j)
             }
             info = -1
@@ -169,8 +183,8 @@ private[ml] class lbfgs {
           } else {
             info = 0
             nfev += 1
-            val dg:Double = ddot(size, g, 1, w, 1)
-            val ftest1:Double  = finit + stp * dgtest
+            val dg: Double = ddot(size, g, 1, w, 1)
+            val ftest1: Double = finit + stp * dgtest
 
             if (stp == 1e20 && f <= ftest1 && dg <= dgtest) {
               info = 5
@@ -189,7 +203,7 @@ private[ml] class lbfgs {
             }
           }
         }
-        //parameter adjustment end///////////////////////////////////////////////////////
+        // parameter adjustment end///////////////////////////////////////////////////////
         if (info == -1) {
           continue = false
         }
@@ -215,7 +229,7 @@ private[ml] class lbfgs {
     var result: Double = 0
     var i: Int = v1start
     var j: Int = v2start
-    while (i < v1start+size && j < v2start+size){
+    while (i < v1start + size && j < v2start + size) {
       result = result + v1(i) * v2(j)
       i += 1
       j += 1
