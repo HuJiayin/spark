@@ -20,6 +20,28 @@ private[ml] class lbfgs {
   private var stp: Double = 1.0
   private var continue: Boolean = true
   private val eps: Double  = 1e-7
+  private var dginit: Double = 0.0
+  private var infoc: Int  = 0
+  private var brackt: Boolean  = false
+  private var stage1: Boolean  = false
+  private var finit: Double = 0.0
+  private var dgtest: Double = 0.0
+  private val ftol: Double = 1e-4
+  private val p5:Double = 0.5
+  private val p66:Double = 0.66
+  private val xtrapf:Double = 4.0
+  private val maxfev:Int = 20
+  private var width:Double = 0.0
+  private var width1:Double = 0.0
+  private var stx:Double = 0.0
+  private var fx:Double = 0.0
+  private var dgx:Double = 0.0
+  private var sty:Double = 0.0
+  private var fy:Double = 0.0
+  private var dgy:Double = 0.0
+  private var contadj:Boolean = true
+  private var stmin:Double = 0.0
+  private var stmax:Double = 0.0
 
 
 
@@ -106,23 +128,84 @@ private[ml] class lbfgs {
           w(ispt + point * size + i) = w(i)
         }
       }
-      if(iflag == 1){
+      if(iflag == 1) {
+        //parameter adjustment begin//////////////////////////////////////////////////////
         if(info == -1){
+
+        }
+        infoc = 1
+        if(size <= 0 || stp <= 0.0){
+          return
+        }
+        dginit = ddot(size, g, 1, w, 1)
+        if(dginit >= 0.0) return
+        brackt = false
+        stage1 = true
+        nfev = 0
+        finit = f
+        dgtest = ftol * dginit
+        width = 1e20 - 1e-20
+        width1 = width / p5
+        for (j<-1 until size) {
+          diag(j) = x(j)
+        }
+        stx = 0.0
+        fx = finit
+        dgx = dginit
+        sty = 0.0
+        fy = finit
+        dgy = dginit
+        while(contadj){
+          if(info != -1){
+            stmin = stx
+            stmax = stp + xtrapf * (stp - stx)
+            stp = math.max(stp, 1e-20)
+            stp = math.min(stp, 1e20)
+            for (j<-1 until size) {
+              x(j) = diag(j) + stp * w(j)
+            }
+            info = -1
+            contadj = false
+          } else {
+            info = 0
+            nfev += 1
+            val dg:Double = ddot(size, g, 1, w, 1)
+            val ftest1:Double  = finit + stp * dgtest
+
+            if (stp == 1e20 && f <= ftest1 && dg <= dgtest) {
+              info = 5
+            }
+            if (stp == 1e-20 && (f > ftest1 || dg >= dgtest)) {
+              info = 4
+            }
+            if (nfev >= maxfev) {
+              info = 3
+            }
+            if (f <= ftest1 && math.abs(dg) <= 0.9 * (-dginit)) {
+              info = 1
+            }
+            if (info != 0) {
+              contadj = false
+            }
+          }
+        }
+        //parameter adjustment end///////////////////////////////////////////////////////
+        if (info == -1) {
           continue = false
         }
-      }
-      npt = point * size
-      for (i<-1 until size) {
-        w(ispt + npt + i) = stp * w(ispt + npt + i)
-        w(iypt + npt + i) = g(i) - w(i)
-      }
-      point +=1
-      if (point == msize) point = 0
-      val gnorm: Double = math.sqrt(ddot(size, v, 1, v, 1))
-      val xnorm: Double = math.max(1.0, math.sqrt(ddot(size, x,1,x,1)))
-      if (gnorm / xnorm <= eps) {
-        iflag = 0  // OK terminated
-        continue = false
+        npt = point * size
+        for (i <- 1 until size) {
+          w(ispt + npt + i) = stp * w(ispt + npt + i)
+          w(iypt + npt + i) = g(i) - w(i)
+        }
+        point += 1
+        if (point == msize) point = 0
+        val gnorm: Double = math.sqrt(ddot(size, v, 1, v, 1))
+        val xnorm: Double = math.max(1.0, math.sqrt(ddot(size, x, 1, x, 1)))
+        if (gnorm / xnorm <= eps) {
+          iflag = 0 // OK terminated
+          continue = false
+        }
       }
     }
   }
@@ -147,10 +230,4 @@ private[ml] class lbfgs {
     }
   }
 
-  def mcsrch(size: Int, x: Array[Double], f: Double,
-             g: Array[Double], s: Array[Double],stp:Double,
-             info: Double, nfev: Int, wa: Array[Double]): Unit = {
-    
-
-  }
 }
