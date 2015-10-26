@@ -16,6 +16,9 @@
  */
 package org.apache.spark.ml.nlp
 
-class CRFTests {
+import org.apache.spark.{Logging, SparkFunSuite}
+import org.scalatest.{Matchers, BeforeAndAfterAll}
+
+class CRFTests extends SparkFunSuite with BeforeAndAfterAll with Matchers with Logging {
   CRF.runCRF("/home/hujiayin/Downloads/template_file", "/home/hujiayin/Downloads/train_file")
 }

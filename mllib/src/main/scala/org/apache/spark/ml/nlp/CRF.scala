@@ -16,6 +16,8 @@
  */
 
 package org.apache.spark.ml.nlp
+
+import scala.collection.mutable.ArrayBuffer
 import org.apache.spark.annotation.DeveloperApi
 
 private[spark] class CRF {
@@ -38,19 +40,20 @@ private[spark] class CRF {
 
   def learn(template: String, train: String): Unit = {
     var tagger: Tagger = new Tagger()
-    val taggerList: Array[Tagger] = null
+    val taggerList: ArrayBuffer[Tagger] = new ArrayBuffer[Tagger]()
     val featureIndex: FeatureIndex = new FeatureIndex()
-    tagger.open(featureIndex)
     featureIndex.openTemplate(template)
+    featureIndex.openTagSet(train)
+    tagger.open(featureIndex)
     tagger.read(train)
-    taggerList :+ tagger
+    taggerList += tagger
     tagger = null
     featureIndex.shrink(freq)
     featureIndex.initAlpha(featureIndex.maxid)
     runCRF(taggerList, featureIndex, featureIndex.alpha)
   }
 
-  def runCRF(tagger: Array[Tagger], featureIndex: FeatureIndex, alpha: Array[Double]): Unit = {
+  def runCRF(tagger: ArrayBuffer[Tagger], featureIndex: FeatureIndex, alpha: Array[Double]): Unit = {
     var diff: Double = 0.0
     var old_obj: Double = 1e37
     var converge: Int = 0
@@ -103,7 +106,7 @@ private[spark] class CRF {
 
 
   private[ml] class CRFThread extends Thread {
-    var x: Array[Tagger] = _
+    var x: ArrayBuffer[Tagger] = new ArrayBuffer[Tagger]()
     var start_i: Int = 0
     var err: Int = 0
     var zeroOne: Int = 0

@@ -16,22 +16,26 @@
  */
 package org.apache.spark.ml.nlp
 
-import scala.io.Source
+import scala.StringBuilder
 import scala.collection.mutable.Map
+import scala.io.Source
+import scala.io.Source._
+import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 private[ml] class FeatureIndex extends Serializable {
-  var maxid: Integer = _
-  var alpha: Array[Double] = _
-  var alpha_float: Vector[Float] = _
-  var cost_factor: Double = _
-  var xsize: Integer = _
-  var check_max_xsize: Boolean = _
+  var maxid: Integer = 0
+  var alpha: Array[Double] = Array[Double]()
+  var alpha_float: Array[Float] = Array[Float]()
+  var cost_factor: Double = 0.0
+  var xsize: Integer = 0
+  var check_max_xsize: Boolean = false
   var max_xsize: Integer = _
-  var unigram_templs: Vector[String] = _
-  var bigram_templs: Vector[String] = _
-  var y: Vector[String] = _
-  var templs: String = _
-  var dic: Map[String, Map[Integer, Integer]] = _
+  var unigram_templs: ArrayBuffer[String] = new ArrayBuffer[String]()
+  var bigram_templs: ArrayBuffer[String] = new ArrayBuffer[String]()
+  var y: Set[Int] = Set[Int]()
+  var templs: String = new String
+  var dic: Map[String, Map[Integer, Integer]] = Map[String, Map[Integer, Integer]]()
   val kMaxContextSize: Integer = 8
   val BOS = Vector[String]("B-1", "_B-2", "_B-3", "_B-4",
     "_B-5", "_B-6", "_B-7", "_B-8")
@@ -39,38 +43,45 @@ private[ml] class FeatureIndex extends Serializable {
     "_B+5", "_B+6", "_B+7", "_B+8")
 
   def openTemplate(filename: String): Unit = {
-    val src = Source.fromFile(filename)
-    val line = src.getLines()
-    while (line.hasNext) {
-      if (line.toString().charAt(0) == 'U') {
-        unigram_templs :+ line
-      } else if (line.toString().charAt(0) == 'B') {
-        bigram_templs :+ line
+    val lineIter: Iterator[String] = fromFile(filename).getLines()
+    val line: Array[String] = lineIter.toArray
+    var i: Int = 0
+    while (i < line.length) {
+      if (line(i).charAt(0) == 'U') {
+        unigram_templs += line(i)
+      } else if (line(i).charAt(0) == 'B') {
+        bigram_templs += line(i)
       }
+      i += 1
     }
-    make_templs(unigram_templs, bigram_templs, templs)
+    make_templs()
   }
 
   def openTagSet(filename: String): Unit = {
-    val src = Source.fromFile(filename)
-    val line = src.getLines()
-    val lineHead = line.toString().charAt(0)
+    val lineIter: Iterator[String] = fromFile(filename).getLines()
+    val line: Array[String] = lineIter.toArray
+    var lineHead = line(0).charAt(0)
     var tag: Array[String] = null
-    while (line.hasNext) {
+    var i: Int = 0
+    while ( i < line.length) {
+      lineHead = line(i).charAt(0)
       if (lineHead != '\0' && lineHead != ' ' && lineHead != '\t') {
-        tag = line.toString().split("\t ")
-        y :+ tag(tag.length - 1)
+        tag = line(i).split("\t ")
+        y += tag(tag.length - 1)
       }
+      i += 1
     }
   }
 
-  def make_templs(unigram_templs: Vector[String], bigram_templs:
-  Vector[String], templs: String): Unit = {
-    for (i <- 0 until unigram_templs.length - 1) {
-      templs :+ unigram_templs(i)
+  def make_templs(): Unit = {
+    var i: Int = 0
+    while (i < unigram_templs.length) {
+      templs += unigram_templs(i)
+      i += 1
     }
-    for (i <- 0 until bigram_templs.length - 1) {
-      templs :+ bigram_templs(i)
+    while (i < bigram_templs.length) {
+      templs += bigram_templs(i)
+      i += 1
     }
   }
 
@@ -254,13 +265,13 @@ private[ml] class FeatureIndex extends Serializable {
     p.cost = 0.0
     if (alpha_float.nonEmpty) {
       while (p.fvector(idx) != -1) {
-        c += alpha_float(p.fvector(0) + p.lnode.y * y.length + p.rnode.y)
+        c += alpha_float(p.fvector(0) + p.lnode.y * y.size + p.rnode.y)
         p.cost = c
         idx += 1
       }
     } else if (alpha.nonEmpty) {
       while (p.fvector(idx) != -1) {
-        cd += alpha(p.fvector(0) + p.lnode.y * y.length + p.rnode.y)
+        cd += alpha(p.fvector(0) + p.lnode.y * y.size + p.rnode.y)
         p.cost = cd
         idx += 1
       }

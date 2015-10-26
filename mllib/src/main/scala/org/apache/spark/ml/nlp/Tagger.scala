@@ -16,7 +16,9 @@
  */
 package org.apache.spark.ml.nlp
 
+import scala.collection.mutable.ArrayBuffer
 import scala.io.Source
+import scala.io.Source._
 
 private[ml] class Tagger extends Serializable {
   var mode: Integer = 2
@@ -29,10 +31,10 @@ private[ml] class Tagger extends Serializable {
   var feature_id: Integer = _
   var thread_id: Integer = _
   var feature_idx: FeatureIndex = _
-  var x: Vector[Vector[String]] = _
+  var x: ArrayBuffer[Array[String]] = new ArrayBuffer[Array[String]]()
   var node: Vector[Vector[Node]] = _
   var penalty: Vector[Vector[Double]] = _
-  var answer: Vector[Integer] = _
+  var answer: ArrayBuffer[Integer] = new ArrayBuffer[Integer]()
   var result: Array[Integer] = _
   val MINUS_LOG_EPSILON = 50
 
@@ -42,18 +44,19 @@ private[ml] class Tagger extends Serializable {
   }
 
   def read(filename: String): Unit = {
-    val src = Source.fromFile(filename)
-    val line = src.getLines()
+    val lineIter: Iterator[String] = fromFile(filename).getLines()
+    val line: Array[String] = lineIter.toArray
+    var i: Int = 0
     var columns: Array[String] = null
-    val s: Integer = x.size
+    val s: Integer = 0
     var r: Integer = ysize
-    while (line.hasNext) {
-      if (line.toString().charAt(0) != '\0'
-        && line.toString().charAt(0) != ' '
-        && line.toString().charAt(0) != '\t') {
-        columns = line.toString().split('\t')
+    while (i < line.length) {
+      if (line(i).charAt(0) != '\0'
+        && line(i).charAt(0) != ' '
+        && line(i).charAt(0) != '\t') {
+        columns = line(i).toString.split('\t')
         for (i <- 0 until columns.length - 1) {
-          x(s) :+ columns
+          x(s) ++= columns
         }
 
         if (mode == 2) {
@@ -63,9 +66,10 @@ private[ml] class Tagger extends Serializable {
               r = i
             }
           }
-          answer.updated(s, r)
+          answer.update(s, r)
         }
       }
+      i += 1
     }
   }
 
