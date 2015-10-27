@@ -62,11 +62,11 @@ private[ml] class Tagger extends Serializable {
         if (mode == 2) {
           // LEARN
           for (i <- 0 until ysize) {
-            if (feature_idx.y(i) == columns(feature_idx.xsize)) {
+            if (feature_idx.y(columns(feature_idx.xsize))) {
               r = i
             }
           }
-          answer.update(s, r)
+          answer.insert(s, r)
         }
       }
       i += 1

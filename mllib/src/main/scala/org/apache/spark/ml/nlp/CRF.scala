@@ -31,7 +31,7 @@ private[spark] class CRF {
   // Convert
   // private val thrinkingSize = 20
   private val threadNum: Integer = Runtime.getRuntime.availableProcessors()
-  private val threadPool: Array[CRFThread] = null
+  private val threadPool: Array[CRFThread] = new Array[CRFThread](threadNum)
 
 
   def run(template: String, train: String): Unit = {
@@ -60,13 +60,15 @@ private[spark] class CRF {
     var itr: Int = 0
     var all: Int = 0
     val lbfgs = new Lbfgs()
+    var i: Int = 0
+    var k: Int = 0
 
     for (i <- 0 until tagger.length - 1) {
       all += tagger(i).x.size
     }
 
     while (itr <= maxiter) {
-      for (i <- 0 until threadNum) {
+      while (i < threadNum) {
         threadPool(i).start_i = i
         threadPool(i).size = tagger.size
         threadPool(i).x = tagger
@@ -75,11 +77,13 @@ private[spark] class CRF {
         threadPool(0).obj += threadPool(i).obj
         threadPool(0).err += threadPool(i).err
         threadPool(0).zeroOne += threadPool(i).zeroOne
-        for (k <- 0 until featureIndex.maxid) {
+        while (k < featureIndex.maxid) {
           threadPool(0).expected(k) += threadPool(i).expected(k)
           threadPool(0).obj += alpha(k) * alpha(k) / 2.0 * C
           threadPool(0).expected(k) += alpha(k) / C
+          k += 1
         }
+        i += 1
       }
       if (itr == 0) {
         diff = 1.0

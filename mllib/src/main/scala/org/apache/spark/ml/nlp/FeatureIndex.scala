@@ -33,7 +33,7 @@ private[ml] class FeatureIndex extends Serializable {
   var max_xsize: Integer = _
   var unigram_templs: ArrayBuffer[String] = new ArrayBuffer[String]()
   var bigram_templs: ArrayBuffer[String] = new ArrayBuffer[String]()
-  var y: Set[Int] = Set[Int]()
+  var y: Set[String] = Set[String]()
   var templs: String = new String
   var dic: Map[String, Map[Integer, Integer]] = Map[String, Map[Integer, Integer]]()
   val kMaxContextSize: Integer = 8
