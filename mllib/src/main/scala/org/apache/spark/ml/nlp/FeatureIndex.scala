@@ -67,7 +67,7 @@ private[ml] class FeatureIndex extends Serializable {
     while ( i < line.length) {
       lineHead = line(i).charAt(0)
       if (lineHead != '\0' && lineHead != ' ' && lineHead != '\t') {
-        tag = line(i).split('\t')
+        tag = line(i).split('|')
         if(tag.size > max){
           max = tag.size
         }
@@ -144,8 +144,8 @@ private[ml] class FeatureIndex extends Serializable {
   def getId(src: String): Integer = {
     var n: Integer = maxid
     var idx: Integer = 0
-    if (dic.get(src) == null) {
-      dic.foreach { case (_, con) =>
+    if (dic.get(src).isEmpty) {
+      dic.foreach { case (src, con) =>
         con.foreach(pair =>
           con.update(maxid, 1)
         )
@@ -169,13 +169,14 @@ private[ml] class FeatureIndex extends Serializable {
           con.update(maxid, idx)
         )
       }
+      return maxid
     }
     -1
   }
 
   def applyRule(src: String, idx: Integer, tagger: Tagger): String = {
-    var dest: String = null
-    var r: String = null
+    var dest: String = ""
+    var r: String = ""
     for (i <- 0 until src.length) {
       if (src.charAt(i) == '%') {
         if (src.charAt(i + 1) == 'X') {

@@ -17,7 +17,6 @@
 package org.apache.spark.ml.nlp
 
 import scala.collection.mutable.ArrayBuffer
-import scala.io.Source
 import scala.io.Source._
 
 private[ml] class Tagger extends Serializable {
@@ -48,17 +47,14 @@ private[ml] class Tagger extends Serializable {
     val line: Array[String] = lineIter.toArray
     var i: Int = 0
     var columns: Array[String] = null
-    val s: Integer = 0
+    val s: Integer = x.size
     var r: Integer = ysize
     while (i < line.length) {
       if (line(i).charAt(0) != '\0'
         && line(i).charAt(0) != ' '
         && line(i).charAt(0) != '\t') {
-        columns = line(i).split('\t')
-        for (i <- 0 until columns.length - 1) {
-          x(s) ++= columns
-        }
-
+        columns = line(i).split('|')
+        x.append(columns)
         if (mode == 2) {
           // LEARN
           for (i <- 0 until ysize) {
