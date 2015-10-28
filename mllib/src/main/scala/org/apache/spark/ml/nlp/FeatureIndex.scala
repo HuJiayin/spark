@@ -57,20 +57,26 @@ private[ml] class FeatureIndex extends Serializable {
     make_templs()
   }
 
-  def openTagSet(filename: String): Unit = {
+  def openTagSet(filename: String): FeatureIndex = {
     val lineIter: Iterator[String] = fromFile(filename).getLines()
     val line: Array[String] = lineIter.toArray
     var lineHead = line(0).charAt(0)
     var tag: Array[String] = null
     var i: Int = 0
+    var max: Int = 0
     while ( i < line.length) {
       lineHead = line(i).charAt(0)
       if (lineHead != '\0' && lineHead != ' ' && lineHead != '\t') {
-        tag = line(i).split("\t ")
+        tag = line(i).split('\t')
+        if(tag.size > max){
+          max = tag.size
+        }
         y += tag(tag.length - 1)
       }
       i += 1
     }
+    xsize = max - 1
+    this
   }
 
   def make_templs(): Unit = {
@@ -108,9 +114,9 @@ private[ml] class FeatureIndex extends Serializable {
     }
   }
 
-  def buildFeatures(tagger: Tagger): Boolean = {
+  def buildFeatures(tagger: Tagger): Unit = {
     var os: String = null
-    val feature: Vector[Integer] = null
+    val feature: ArrayBuffer[Integer] = null
     var id: Integer = 0
     for (cur <- 0 until tagger.x.size - 1) {
       for (it <- 0 until unigram_templs.length - 1) {
@@ -129,7 +135,6 @@ private[ml] class FeatureIndex extends Serializable {
         }
       }
     }
-    true
   }
 
   def rebuildFeatures(tagger: Tagger): Unit = {

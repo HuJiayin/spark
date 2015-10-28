@@ -40,12 +40,13 @@ private[spark] class CRF {
 
   def learn(template: String, train: String): Unit = {
     var tagger: Tagger = new Tagger()
-    val taggerList: ArrayBuffer[Tagger] = new ArrayBuffer[Tagger]()
-    val featureIndex: FeatureIndex = new FeatureIndex()
+    var taggerList: ArrayBuffer[Tagger] = new ArrayBuffer[Tagger]()
+    var featureIndex: FeatureIndex = new FeatureIndex()
     featureIndex.openTemplate(template)
-    featureIndex.openTagSet(train)
+    featureIndex = featureIndex.openTagSet(train)
+    tagger = tagger.read(train)
     tagger.open(featureIndex)
-    tagger.read(train)
+    featureIndex.buildFeatures(tagger)
     taggerList += tagger
     tagger = null
     featureIndex.shrink(freq)
@@ -69,6 +70,7 @@ private[spark] class CRF {
 
     while (itr <= maxiter) {
       while (i < threadNum) {
+        threadPool(i) = new CRFThread()
         threadPool(i).start_i = i
         threadPool(i).size = tagger.size
         threadPool(i).x = tagger
@@ -110,7 +112,7 @@ private[spark] class CRF {
 
 
   private[ml] class CRFThread extends Thread {
-    var x: ArrayBuffer[Tagger] = new ArrayBuffer[Tagger]()
+    var x: ArrayBuffer[Tagger] = null
     var start_i: Int = 0
     var err: Int = 0
     var zeroOne: Int = 0

@@ -23,19 +23,19 @@ import scala.io.Source._
 private[ml] class Tagger extends Serializable {
   var mode: Integer = 2
   // LEARN
-  var vlevel: Integer = _
-  var nbest: Integer = _
-  var ysize: Integer = _
-  var cost: Double = _
-  var Z: Double = _
-  var feature_id: Integer = _
-  var thread_id: Integer = _
-  var feature_idx: FeatureIndex = _
+  var vlevel: Integer = 0
+  var nbest: Integer = 0
+  var ysize: Integer = 0
+  var cost: Double = 0.0
+  var Z: Double = 0.0
+  var feature_id: Integer = 0
+  var thread_id: Integer = 0
+  var feature_idx: FeatureIndex = new FeatureIndex
   var x: ArrayBuffer[Array[String]] = new ArrayBuffer[Array[String]]()
-  var node: Vector[Vector[Node]] = _
-  var penalty: Vector[Vector[Double]] = _
+  var node: ArrayBuffer[ArrayBuffer[Node]] = new ArrayBuffer[ArrayBuffer[Node]]()
+  var penalty: ArrayBuffer[ArrayBuffer[Double]] = new ArrayBuffer[ArrayBuffer[Double]]()
   var answer: ArrayBuffer[Integer] = new ArrayBuffer[Integer]()
-  var result: Array[Integer] = _
+  var result: ArrayBuffer[Integer] = new ArrayBuffer[Integer]()
   val MINUS_LOG_EPSILON = 50
 
   def open(featureIndex: FeatureIndex): Unit = {
@@ -43,7 +43,7 @@ private[ml] class Tagger extends Serializable {
     ysize = feature_idx.y.size
   }
 
-  def read(filename: String): Unit = {
+  def read(filename: String): Tagger = {
     val lineIter: Iterator[String] = fromFile(filename).getLines()
     val line: Array[String] = lineIter.toArray
     var i: Int = 0
@@ -54,7 +54,7 @@ private[ml] class Tagger extends Serializable {
       if (line(i).charAt(0) != '\0'
         && line(i).charAt(0) != ' '
         && line(i).charAt(0) != '\t') {
-        columns = line(i).toString.split('\t')
+        columns = line(i).split('\t')
         for (i <- 0 until columns.length - 1) {
           x(s) ++= columns
         }
@@ -71,6 +71,7 @@ private[ml] class Tagger extends Serializable {
       }
       i += 1
     }
+    this
   }
 
   def setFeatureId(id: Integer): Unit = {
@@ -147,11 +148,13 @@ private[ml] class Tagger extends Serializable {
       }
     }
     bestc = -1e37
-    for (j <- 0 until ysize) {
+    var j:Int = 0
+    while (j < ysize) {
       if (node(x.length - 1)(j).bestCost > bestc) {
         best = node(x.length - 1)(j)
         bestc = node(x.length - 1)(j).bestCost
       }
+      j += 1
     }
     nd = best
     while (nd != null) {
@@ -221,5 +224,12 @@ private[ml] class Tagger extends Serializable {
     } else {
       vMax + math.log(math.exp(vMin - vMax) + 1.0)
     }
+  }
+
+  def getFeatureIdx(): FeatureIndex = {
+    if(feature_idx!=null){
+      return feature_idx
+    }
+    null
   }
 }
