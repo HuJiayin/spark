@@ -16,15 +16,11 @@
  */
 package org.apache.spark.ml.nlp
 
-import scala.StringBuilder
-import scala.collection.mutable.Map
-import scala.io.Source
 import scala.io.Source._
-import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 private[ml] class FeatureIndex extends Serializable {
-  var maxid: Integer = 0
+  var maxid: Int = 0
   var alpha: Array[Double] = Array[Double]()
   var alpha_float: Array[Float] = Array[Float]()
   var cost_factor: Double = 0.0
@@ -35,12 +31,15 @@ private[ml] class FeatureIndex extends Serializable {
   var bigram_templs: ArrayBuffer[String] = new ArrayBuffer[String]()
   var y: Set[String] = Set[String]()
   var templs: String = new String
-  var dic: Map[String, Map[Integer, Integer]] = Map[String, Map[Integer, Integer]]()
+  //var dic: Map[String, Map[Int, Int]] = Map[String, Map[Int, Int]]()
+  var dic: scala.collection.mutable.Map[String, (Int,Int)] =
+    scala.collection.mutable.Map[String, (Int,Int)]()
   val kMaxContextSize: Integer = 8
   val BOS = Vector[String]("B-1", "_B-2", "_B-3", "_B-4",
     "_B-5", "_B-6", "_B-7", "_B-8")
   val EOS = Vector[String]("_B+1", "_B+2", "_B+3", "_B+4",
     "_B+5", "_B+6", "_B+7", "_B+8")
+  val featureCache: ArrayBuffer[Int] = new ArrayBuffer[Int]()
 
   def openTemplate(filename: String): Unit = {
     val lineIter: Iterator[String] = fromFile(filename).getLines()
@@ -92,18 +91,25 @@ private[ml] class FeatureIndex extends Serializable {
   }
 
   def shrink(freq: Integer): Unit = {
-    var newMaxId: Integer = 0
+    var newMaxId: Int = 0
     val key: String = null
+    val count: Int = 0
+    val currId: Int = 0
 
     if (freq > 1) {
       while (dic.iterator.next() != null) {
-        dic.foreach { case (_, con) =>
+         /* dic.foreach { case (_, con) =>
           con.foreach(pair => if (pair._2 > freq) {
             con.update(newMaxId, pair._1)
           } else {
             dic - key
           })
+        } */
+        dic.getOrElse(key,(currId,count))
+        if(count > freq) {
+          dic.getOrElseUpdate(key, (newMaxId, count))
         }
+
         if (key.toString.charAt(0) == 'U') {
           newMaxId += y.size
         } else {
@@ -114,42 +120,65 @@ private[ml] class FeatureIndex extends Serializable {
     }
   }
 
-  def buildFeatures(tagger: Tagger): Unit = {
-    var os: String = null
-    val feature: ArrayBuffer[Integer] = null
-    var id: Integer = 0
-    for (cur <- 0 until tagger.x.size - 1) {
-      for (it <- 0 until unigram_templs.length - 1) {
-        os = applyRule(unigram_templs(it), cur, tagger)
-        id = getId(os)
-        if (id != -1) {
-          feature :+ id
-        }
+  def rebuildFeatures(tagger: Tagger): Unit = {
+    var cur: Int = 0
+    var i: Int = 0
+    var fid = tagger.feature_id
+    var thead_id = tagger.thread_id
+    var nd = new Node
+    while(cur < tagger.x.size){
+      while(i < tagger.ysize){
+        nd = new Node
+        nd.x = cur
+        nd.y = i
+        nd.fvector = featureCache(fid)
+        tagger.node(cur)(i) = nd
+        i += 1
+        fid += 1
       }
-
-      for (it <- 0 until bigram_templs.length - 1) {
-        os = applyRule(bigram_templs(it), cur, tagger)
-        id = getId(os)
-        if (id != -1) {
-          feature :+ id
-        }
-      }
+      cur += 1
     }
   }
 
-  def rebuildFeatures(tagger: Tagger): Unit = {
-
+  def buildFeatures(tagger: Tagger): Unit = {
+    var os: String = null
+    var id: Integer = 0
+    var cur: Int = 0
+    var it: Int = 0
+    while (cur < tagger.x.size) {
+      while (it < unigram_templs.length) {
+        os = applyRule(unigram_templs(it), cur, tagger)
+        id = getId(os)
+        if (id != -1) {
+          featureCache.append(id)
+        }
+        it += 1
+      }
+      featureCache.append(-1)
+      it = 0
+      while (it < bigram_templs.length) {
+        os = applyRule(bigram_templs(it), cur, tagger)
+        id = getId(os)
+        if (id != -1) {
+          featureCache.append(id)
+        }
+        it += 1
+      }
+      featureCache.append(-1)
+      cur += 1
+    }
   }
 
   def getId(src: String): Integer = {
     var n: Integer = maxid
     var idx: Integer = 0
     if (dic.get(src).isEmpty) {
-      dic.foreach { case (src, con) =>
+      /* dic.foreach { case (src, con) =>
         con.foreach(pair =>
           con.update(maxid, 1)
         )
-      }
+      } */
+      dic.update(src,(maxid,1))
       n = maxid
       if (src.charAt(0) == 'U') {
         // Unigram
@@ -162,13 +191,15 @@ private[ml] class FeatureIndex extends Serializable {
       return n
     }
     else {
-      idx = dic.get(src).get(maxid)
+      // idx = dic.get(src).get(maxid)
+      idx = dic.get(src).get._2
       idx += 1
-      dic.foreach { case (_, con) =>
+      dic.update(src, (maxid, idx))
+      /* dic.foreach { case (_, con) =>
         con.foreach(pair =>
           con.update(maxid, idx)
         )
-      }
+      } */
       return maxid
     }
     -1
@@ -250,16 +281,18 @@ private[ml] class FeatureIndex extends Serializable {
     var idx: Int = 0
     n.cost = 0.0
     if (alpha_float.nonEmpty) {
-      while (n.fvector(idx) != -1) {
-        c += alpha_float(n.fvector(0) + n.y)
+      idx = n.fvector
+      while (n.fvector != -1) {
+        c += alpha_float(idx + n.y)
         n.cost = c
-        idx += 1
+        n.fvector += 1
       }
     } else if (alpha.nonEmpty) {
-      while (n.fvector(idx) != -1) {
-        cd += alpha(n.fvector(0) + n.y)
+      idx = n.fvector
+      while (n.fvector != -1) {
+        cd += alpha(idx + n.y)
         n.cost = cd
-        idx += 1
+        n.fvector += 1
       }
     }
   }
@@ -270,16 +303,18 @@ private[ml] class FeatureIndex extends Serializable {
     var idx: Int = 0
     p.cost = 0.0
     if (alpha_float.nonEmpty) {
-      while (p.fvector(idx) != -1) {
-        c += alpha_float(p.fvector(0) + p.lnode.y * y.size + p.rnode.y)
+      idx = p.fvector
+      while (p.fvector != -1) {
+        c += alpha_float(idx + p.lnode.y * y.size + p.rnode.y)
         p.cost = c
-        idx += 1
+        p.fvector += 1
       }
     } else if (alpha.nonEmpty) {
-      while (p.fvector(idx) != -1) {
-        cd += alpha(p.fvector(0) + p.lnode.y * y.size + p.rnode.y)
+      idx = p.fvector
+      while (p.fvector != -1) {
+        cd += alpha(idx + p.lnode.y * y.size + p.rnode.y)
         p.cost = cd
-        idx += 1
+        p.fvector += 1
       }
     }
   }

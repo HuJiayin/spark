@@ -19,9 +19,9 @@ package org.apache.spark.ml.nlp
 private[ml] class Path extends Serializable{
   var rnode: Node = _
   var lnode: Node = _
-  var cost: Double = _
-  var fvector: Vector[Integer] = _
-  var fIdx: Integer = _
+  var cost: Double = 0.0
+  var fvector: Int = 0
+  var fIdx: Integer = 0
 
   object Path{
     val path = new Path
@@ -29,9 +29,10 @@ private[ml] class Path extends Serializable{
   }
   def calExpectation(expected : Array[Double], Z: Double, size: Integer): Unit = {
     var c: Double = math.exp(lnode.alpha + cost + rnode.beta - Z)
-    while(fvector(fIdx)!= -1) {
-      expected(fvector(0) + lnode.y*size + rnode.y) += c
-      fIdx += 1
+    fIdx = fvector
+    while(fvector!= -1) {
+      expected(fIdx + lnode.y*size + rnode.y) += c
+      fvector += 1
     }
   }
 

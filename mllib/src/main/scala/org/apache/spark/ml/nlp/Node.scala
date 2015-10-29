@@ -15,26 +15,29 @@
  * limitations under the License.
  */
 package org.apache.spark.ml.nlp
+import scala.collection.mutable.ArrayBuffer
 
 private[ml] class Node extends Serializable {
-  var x: Integer = _
-  var y: Integer = _
-  var alpha: Double = _
-  var beta: Double = _
-  var cost: Double = _
-  var bestCost: Double = _
+  var x: Integer = 0
+  var y: Integer = 0
+  var alpha: Double = 0.0
+  var beta: Double = 0.0
+  var cost: Double = 0.0
+  var bestCost: Double = 0.0
   var prev: Node = _
-  var fvector: Vector[Integer] = _
-  var fIdx: Integer = _
-  var lpath: Vector[Path] = _
-  var rpath: Vector[Path] = _
+  var fvector: Int = 0
+  var fIdx: Int = 0
+  var lpath: ArrayBuffer[Path] = _
+  var rpath: ArrayBuffer[Path] = _
   val MINUS_LOG_EPSILON = 50
 
-  /*  object Node{
-      val node = new Node
-      def getInstance: Node = {node}
+  object Node {
+    val node = new Node
+    def getInstance: Node = {
+      node
     }
-  */
+  }
+
 
   def logsumexp(x: Double, y: Double, flg: Boolean): Double = {
     if (flg) return y
@@ -66,9 +69,10 @@ private[ml] class Node extends Serializable {
   def calExpectation(expected: Array[Double], Z: Double, size: Integer): Unit = {
     var c: Double = math.exp(alpha + cost + beta - Z)
     val pathObj: Path = new Path()
-    while (fvector(fIdx) != -1) {
-      expected(fvector(0) + y) += c
-      fIdx += 1
+    fIdx = fvector
+    while (fvector != -1) {
+      expected(fIdx + y) += c
+      fvector += 1
     }
     for (i <- 0 until lpath.length - 1) {
       pathObj.calExpectation(expected, Z, size)

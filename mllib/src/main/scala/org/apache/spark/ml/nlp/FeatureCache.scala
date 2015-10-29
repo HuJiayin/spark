@@ -15,18 +15,17 @@
  * limitations under the License.
  */
 package org.apache.spark.ml.nlp
+import scala.collection.mutable.ArrayBuffer
 
 class FeatureCache {
-  private var feature_freelist: Vector[Int] = _
+  private var feature_freelist: ArrayBuffer[Int] = new ArrayBuffer[Int]()
 
   def shrink(old2new: Map[Integer, Integer]): Unit = {
 
   }
 
-  def add(f: Vector[Int]): Unit = {
-    for (i <- 0 until f.length - 1) {
-      feature_freelist :+ f(i)
-    }
-    feature_freelist :+ -1 // ...until *f!=-1 end mark sentinel
+  def add(f: ArrayBuffer[Int]): Unit = {
+    feature_freelist ++= f
+    // feature_freelist :+ -1 // ...until *f!=-1 end mark sentinel
   }
 }

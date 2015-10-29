@@ -29,7 +29,7 @@ private[ml] class Tagger extends Serializable {
   var Z: Double = 0.0
   var feature_id: Integer = 0
   var thread_id: Integer = 0
-  var feature_idx: FeatureIndex = new FeatureIndex
+  var feature_idx: FeatureIndex = new FeatureIndex()
   var x: ArrayBuffer[Array[String]] = new ArrayBuffer[Array[String]]()
   var node: ArrayBuffer[ArrayBuffer[Node]] = new ArrayBuffer[ArrayBuffer[Node]]()
   var penalty: ArrayBuffer[ArrayBuffer[Double]] = new ArrayBuffer[ArrayBuffer[Double]]()
@@ -79,43 +79,62 @@ private[ml] class Tagger extends Serializable {
   }
 
   def buildLattice(): Unit = {
-    if (x.isEmpty) {
-      // rebuildFeatures
-      for (i <- 0 until x.length - 1) {
-        for (j <- 0 until ysize) {
+    var i: Int = 0
+    var j: Int = 0
+    var k: Int = 0
+
+    if (x.nonEmpty) {
+      feature_idx.rebuildFeatures(this)
+      while (i < x.length) {
+        while (j < ysize) {
           feature_idx.calcCost(node(i)(j))
-          for (k <- 0 until node(i)(j).lpath.length - 1) {
+          while (k < node(i)(j).lpath.length) {
             feature_idx.calcCost(node(i)(j).lpath(k))
+            k += 1
           }
+          j += 1
         }
+        i += 1
       }
     }
+    i = 0
+    j = 0
     if (penalty.nonEmpty) {
-      for (i <- 0 until x.length - 1) {
-        for (j <- 0 until ysize) {
+      while (i < x.length) {
+        while (j < ysize) {
           node(i)(j).cost += penalty(i)(j)
+          j += 1
         }
+        i +=1
       }
     }
   }
 
   def forwardBackward(): Unit = {
     var idx: Int = x.length - 1
+    var i: Int = 0
+    var j: Int = 0
     if (x.nonEmpty) {
-      for (i <- 0 until x.length - 1) {
-        for (j <- 0 until ysize) {
+      while (i < x.length) {
+        while (j < ysize) {
           node(i)(j).calcAlpha()
+          j += 1
         }
+        i += 1
       }
+      j = 0
       while (idx >= 0) {
-        for (j <- 0 until ysize) {
+        while (j < ysize) {
           node(idx)(j).calcBeta()
-          idx -= 1
+          j += 1
         }
+        idx -= 1
       }
       Z = 0.0
-      for (i <- 0 until ysize) {
+      i = 0
+      while (i < ysize) {
         Z = logsumexp(Z, node(0)(i).beta, i == 0)
+        i += 1
       }
     }
   }
@@ -125,9 +144,12 @@ private[ml] class Tagger extends Serializable {
     var best: Node = null
     var cost: Double = 0.0
     var nd: Node = null
-    for (i <- 0 until x.length - 1) {
-      for (j <- 0 until ysize) {
-        for (k <- 0 until node(i)(j).lpath.length - 1) {
+    var i: Int = 0
+    var j: Int = 0
+    var k: Int = 0
+    while (i < x.length) {
+      while (j < ysize) {
+        while (k < node(i)(j).lpath.length - 1) {
           cost = node(i)(j).lpath(k).lnode.bestCost
           +node(i)(j).lpath(k).lnode.cost + node(i)(j).cost
           if (cost > bestc) {
@@ -140,11 +162,14 @@ private[ml] class Tagger extends Serializable {
           } else {
             node(i)(j).cost = node(i)(j).cost
           }
+          k += 1
         }
+        j += 1
       }
+      i += 1
     }
     bestc = -1e37
-    var j:Int = 0
+    j = 0
     while (j < ysize) {
       if (node(x.length - 1)(j).bestCost > bestc) {
         best = node(x.length - 1)(j)
@@ -168,7 +193,7 @@ private[ml] class Tagger extends Serializable {
     var idx: Int = 0
 
     if (x.isEmpty) {
-      0.0
+      return 0.0
     }
     buildLattice()
     forwardBackward()
@@ -179,9 +204,10 @@ private[ml] class Tagger extends Serializable {
       }
     }
     for (row <- 0 until x.length - 1) {
-      while (node(row)(answer(row)).fvector(idx) != -1) {
-        expected(node(row)(answer(row)).fvector(0) + answer(row)) -= 1
-        idx += 1
+      idx = node(row)(answer(row)).fvector
+      while (node(row)(answer(row)).fvector != -1) {
+        expected(idx + answer(row)) -= 1
+        node(row)(answer(row)).fvector += 1
       }
       s += node(row)(answer(row)).cost
       for (i <- 0 until node(row)(answer(row)).lpath.length - 1) {
@@ -189,9 +215,10 @@ private[ml] class Tagger extends Serializable {
         rNode = node(row)(answer(row)).lpath(i).rnode
         lPath = node(row)(answer(row)).lpath(i)
         if (lNode.y == answer(lNode.x)) {
-          while (lPath.fvector(idx) != -1) {
-            expected(lPath.fvector(0) + lNode.y * ysize + rNode.y) -= 1
-            idx += 1
+          idx = lPath.fvector
+          while (lPath.fvector != -1) {
+            expected(idx + lNode.y * ysize + rNode.y) -= 1
+            lPath.fvector += 1
           }
           s += lPath.cost
         }
@@ -203,10 +230,12 @@ private[ml] class Tagger extends Serializable {
 
   def eval(): Int = {
     var err: Int = 0
-    for (i <- 0 until x.length - 1) {
+    var i: Int = 0
+    while (i < x.length) {
       if (answer(i) != result(i)) {
         err += 1
       }
+      i += 1
     }
     err
   }
