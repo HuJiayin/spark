@@ -27,8 +27,8 @@ private[ml] class Node extends Serializable {
   var prev: Node = _
   var fvector: Int = 0
   var fIdx: Int = 0
-  var lpath: ArrayBuffer[Path] = _
-  var rpath: ArrayBuffer[Path] = _
+  var lpath: ArrayBuffer[Path] = new ArrayBuffer[Path]()
+  var rpath: ArrayBuffer[Path] = new ArrayBuffer[Path]()
   val MINUS_LOG_EPSILON = 50
 
   object Node {

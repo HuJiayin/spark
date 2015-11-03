@@ -40,6 +40,7 @@ private[ml] class FeatureIndex extends Serializable {
   val EOS = Vector[String]("_B+1", "_B+2", "_B+3", "_B+4",
     "_B+5", "_B+6", "_B+7", "_B+8")
   val featureCache: ArrayBuffer[Int] = new ArrayBuffer[Int]()
+  val featureCacheH: ArrayBuffer[Int] = new ArrayBuffer[Int]()
 
   def openTemplate(filename: String): Unit = {
     val lineIter: Iterator[String] = fromFile(filename).getLines()
@@ -123,25 +124,42 @@ private[ml] class FeatureIndex extends Serializable {
   def rebuildFeatures(tagger: Tagger): Unit = {
     var cur: Int = 0
     var i: Int = 0
+    var j: Int = 0
     var fid = tagger.feature_id
     // var thead_id = tagger.thread_id
     // tagger.node = new ArrayBuffer[ArrayBuffer[Node]](tagger.x.size)
     val nodeList: ArrayBuffer[Node] = new ArrayBuffer[Node]()
     var nd = new Node
+    var path = new Path
+
     while(cur < tagger.x.size){
       while(i < tagger.ysize){
         // tagger.node(_) = new ArrayBuffer[Node](i + 1)
         nd = new Node
         nd.x = cur
         nd.y = i
-        nd.fvector = featureCache(fid)
+        nd.fvector = featureCacheH(fid)
         nodeList.append(nd)
         //tagger.node(cur)(i) = nd
         i += 1
-        fid += 1
       }
+      fid += 1
       tagger.node.append(nodeList)
-      nodeList.clear()
+      cur += 1
+    }
+
+    cur = 1
+    i = 0
+    while(cur < tagger.x.size){
+      while(j < tagger.ysize){
+        while(i< tagger.ysize){
+          path = new Path
+          path.add(tagger.node(cur - 1)(j),tagger.node(cur)(i))
+          path.fvector = featureCacheH(fid)
+          i += 1
+        }
+        j += 1
+      }
       cur += 1
     }
   }
@@ -151,16 +169,16 @@ private[ml] class FeatureIndex extends Serializable {
     var id: Integer = 0
     var cur: Int = 0
     var it: Int = 0
+    featureCacheH.append(0)
     while (cur < tagger.x.size) {
       while (it < unigram_templs.length) {
         os = applyRule(unigram_templs(it), cur, tagger)
         id = getId(os)
-        if (id != -1) {
-          featureCache.append(id)
-        }
+        featureCache.append(id)
         it += 1
       }
       featureCache.append(-1)
+      featureCacheH.append(maxid)
       cur += 1
       it = 0
     }
@@ -170,14 +188,13 @@ private[ml] class FeatureIndex extends Serializable {
       while (it < bigram_templs.length) {
         os = applyRule(bigram_templs(it), cur, tagger)
         id = getId(os)
-        if (id != -1) {
-          featureCache.append(id)
-        }
+        featureCache.append(id)
         it += 1
       }
-      it = 0
       featureCache.append(-1)
+      featureCacheH.append(maxid)
       cur += 1
+      it = 0
     }
   }
 
@@ -291,29 +308,27 @@ private[ml] class FeatureIndex extends Serializable {
   }
 
   def initAlpha(size: Integer): Unit = {
-    for (i <- 0 until size - 1) {
-      alpha :+ 0.0
-    }
+    alpha = new Array[Double](size)
+    // alpha_float = new Array[Float](size)
   }
 
   def calcCost(n: Node): Unit = {
     var c: Float = 0
     var cd: Double = 0.0
-    var idx: Int = 0
+    var idx: Int = n.fvector
+
     n.cost = 0.0
     if (alpha_float.nonEmpty) {
-      idx = n.fvector
-      while (n.fvector != -1) {
-        c += alpha_float(idx + n.y)
+      while (featureCache(idx) != -1) {
+        c += alpha_float(featureCache(idx) + n.y)
         n.cost = c
-        n.fvector += 1
+        idx += 1
       }
     } else if (alpha.nonEmpty) {
-      idx = n.fvector
-      while (n.fvector != -1) {
-        cd += alpha(idx + n.y)
+      while (featureCache(idx) != -1) {
+        cd += alpha(featureCache(idx) + n.y)
         n.cost = cd
-        n.fvector += 1
+        idx += 1
       }
     }
   }
@@ -321,21 +336,21 @@ private[ml] class FeatureIndex extends Serializable {
   def calcCost(p: Path): Unit = {
     var c: Float = 0
     var cd: Double = 0.0
-    var idx: Int = 0
+    var idx: Int = p.fvector
     p.cost = 0.0
     if (alpha_float.nonEmpty) {
-      idx = p.fvector
-      while (p.fvector != -1) {
-        c += alpha_float(idx + p.lnode.y * y.size + p.rnode.y)
+      while (featureCache(idx) != -1) {
+        c += alpha_float(featureCache(idx) +
+          p.lnode.y * y.size + p.rnode.y)
         p.cost = c
-        p.fvector += 1
+        idx += 1
       }
     } else if (alpha.nonEmpty) {
-      idx = p.fvector
-      while (p.fvector != -1) {
-        cd += alpha(idx + p.lnode.y * y.size + p.rnode.y)
+      while (featureCache(idx) != -1) {
+        cd += alpha(featureCache(idx) +
+          p.lnode.y * y.size + p.rnode.y)
         p.cost = cd
-        p.fvector += 1
+        idx += 1
       }
     }
   }

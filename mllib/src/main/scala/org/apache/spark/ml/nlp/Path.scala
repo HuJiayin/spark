@@ -17,8 +17,8 @@
 package org.apache.spark.ml.nlp
 
 private[ml] class Path extends Serializable{
-  var rnode: Node = _
-  var lnode: Node = _
+  var rnode: Node = new Node
+  var lnode: Node = new Node
   var cost: Double = 0.0
   var fvector: Int = 0
   var fIdx: Integer = 0
@@ -35,16 +35,13 @@ private[ml] class Path extends Serializable{
       fvector += 1
     }
   }
-
-  def add(_lnode : Node, _rnode: Node): Unit = {
-    lnode = _lnode
-    rnode = _rnode
-    lnode.rpath :+ lnode
-    rnode.lpath :+ rnode
+  def add(lnd : Node, rnd: Node): Unit = {
+    lnode = lnd
+    rnode = rnd
+    lnode.rpath.append(this)
+    rnode.lpath.append(this)
   }
-
   def clear(): Unit = {
     cost = 0
   }
-
 }

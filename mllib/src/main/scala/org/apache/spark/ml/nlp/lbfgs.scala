@@ -16,6 +16,8 @@
  */
 package org.apache.spark.ml.nlp
 
+import scala.collection.mutable.ArrayBuffer
+
 private[ml] class Lbfgs {
 
   private var w: Array[Double] = _
