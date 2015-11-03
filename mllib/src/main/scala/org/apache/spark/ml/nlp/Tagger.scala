@@ -31,7 +31,7 @@ private[ml] class Tagger extends Serializable {
   var thread_id: Integer = 0
   var feature_idx: FeatureIndex = new FeatureIndex()
   var x: ArrayBuffer[Array[String]] = new ArrayBuffer[Array[String]]()
-  var node: ArrayBuffer[ArrayBuffer[Node]] = new ArrayBuffer[ArrayBuffer[Node]]()
+  var node: ArrayBuffer[ArrayBuffer[Node]] = new ArrayBuffer[ArrayBuffer[Node]]
   var penalty: ArrayBuffer[ArrayBuffer[Double]] = new ArrayBuffer[ArrayBuffer[Double]]()
   var answer: ArrayBuffer[Integer] = new ArrayBuffer[Integer]()
   var result: ArrayBuffer[Integer] = new ArrayBuffer[Integer]()

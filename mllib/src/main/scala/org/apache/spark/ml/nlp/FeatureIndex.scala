@@ -26,7 +26,7 @@ private[ml] class FeatureIndex extends Serializable {
   var cost_factor: Double = 0.0
   var xsize: Integer = 0
   var check_max_xsize: Boolean = false
-  var max_xsize: Integer = _
+  var max_xsize: Int = 0
   var unigram_templs: ArrayBuffer[String] = new ArrayBuffer[String]()
   var bigram_templs: ArrayBuffer[String] = new ArrayBuffer[String]()
   var y: Set[String] = Set[String]()
@@ -34,8 +34,8 @@ private[ml] class FeatureIndex extends Serializable {
   //var dic: Map[String, Map[Int, Int]] = Map[String, Map[Int, Int]]()
   var dic: scala.collection.mutable.Map[String, (Int,Int)] =
     scala.collection.mutable.Map[String, (Int,Int)]()
-  val kMaxContextSize: Integer = 8
-  val BOS = Vector[String]("B-1", "_B-2", "_B-3", "_B-4",
+  val kMaxContextSize: Int = 8
+  val BOS = Vector[String]("_B-1", "_B-2", "_B-3", "_B-4",
     "_B-5", "_B-6", "_B-7", "_B-8")
   val EOS = Vector[String]("_B+1", "_B+2", "_B+3", "_B+4",
     "_B+5", "_B+6", "_B+7", "_B+8")
@@ -124,18 +124,24 @@ private[ml] class FeatureIndex extends Serializable {
     var cur: Int = 0
     var i: Int = 0
     var fid = tagger.feature_id
-    var thead_id = tagger.thread_id
+    // var thead_id = tagger.thread_id
+    // tagger.node = new ArrayBuffer[ArrayBuffer[Node]](tagger.x.size)
+    val nodeList: ArrayBuffer[Node] = new ArrayBuffer[Node]()
     var nd = new Node
     while(cur < tagger.x.size){
       while(i < tagger.ysize){
+        // tagger.node(_) = new ArrayBuffer[Node](i + 1)
         nd = new Node
         nd.x = cur
         nd.y = i
         nd.fvector = featureCache(fid)
-        tagger.node(cur)(i) = nd
+        nodeList.append(nd)
+        //tagger.node(cur)(i) = nd
         i += 1
         fid += 1
       }
+      tagger.node.append(nodeList)
+      nodeList.clear()
       cur += 1
     }
   }
@@ -155,7 +161,12 @@ private[ml] class FeatureIndex extends Serializable {
         it += 1
       }
       featureCache.append(-1)
+      cur += 1
       it = 0
+    }
+    it = 0
+    cur = 1
+    while (cur < tagger.x.size) {
       while (it < bigram_templs.length) {
         os = applyRule(bigram_templs(it), cur, tagger)
         id = getId(os)
@@ -164,6 +175,7 @@ private[ml] class FeatureIndex extends Serializable {
         }
         it += 1
       }
+      it = 0
       featureCache.append(-1)
       cur += 1
     }
@@ -208,59 +220,68 @@ private[ml] class FeatureIndex extends Serializable {
   def applyRule(src: String, idx: Integer, tagger: Tagger): String = {
     var dest: String = ""
     var r: String = ""
-    for (i <- 0 until src.length) {
+    var i: Int = 0
+    while (i < src.length) {
       if (src.charAt(i) == '%') {
-        if (src.charAt(i + 1) == 'X') {
+        if (src.charAt(i + 1) == 'x') {
           r = getIndex(src.substring(i + 2), idx, tagger)
+          if(r==null){
+            return null
+          }
           dest += r
         }
       } else {
         dest += src.charAt(i)
       }
+      i += 1
     }
     dest
   }
 
   def getIndex(src: String, pos: Integer, tagger: Tagger): String = {
-    var neg: Integer = 0
+    var neg: Integer = 1
     var col: Integer = 0
     var row: Integer = 0
     var idx: Integer = 0
     var rtn: String = null
     var encol: Boolean = false
+    var i: Int = 0
     if (src.charAt(0) != '[') {
-      null
+      return null
     }
+    i += 1
     if (src.charAt(1) == '-') {
       neg = -1
+      i += 1
     }
-    for (i <- 1 - neg until src.length - 1) {
+    while (i < src.length) {
       if (src.charAt(i) - '0' <= 9 && src.charAt(i) - '0' >= 0) {
-        if (encol == false) {
+        if (!encol) {
           row = 10 * row + (src.charAt(i) - '0')
         } else {
           col = 10 * col + (src.charAt(i) - '0')
         }
       } else if (src.charAt(i) == ',') {
         encol = true
-      } else {
-        0
+      } else if (src.charAt(i) == ']'){
+        i = src.length // break
       }
+      i += 1
     }
     row *= neg
     if (row < -kMaxContextSize || row > kMaxContextSize ||
       col < 0 || col >= xsize) {
-      0
+      return null
     }
 
     max_xsize = math.max(max_xsize, col + 1)
 
     idx = pos + row
     if (idx < 0) {
-      BOS(-idx - 1)
+      return BOS(-idx - 1)
     }
     if (idx >= tagger.x.size) {
-      EOS(idx - tagger.x.size)
+      return EOS(idx - tagger.x.size)
     }
     tagger.x(idx)(col)
   }

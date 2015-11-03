@@ -110,6 +110,10 @@ private[spark] class CRF {
     }
   }
 
+  def TestCRF(): Unit = {
+
+  }
+
 
   private[ml] class CRFThread extends Thread {
     var x: ArrayBuffer[Tagger] = null
