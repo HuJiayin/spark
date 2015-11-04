@@ -67,6 +67,7 @@ private[ml] class Tagger extends Serializable {
       }
       i += 1
     }
+    result = answer.clone()
     this
   }
 
@@ -179,18 +180,22 @@ private[ml] class Tagger extends Serializable {
     }
     nd = best
     while (nd != null) {
-      result(nd.x) = nd.y
+      result.update(nd.x, nd.y)
       nd = nd.prev
     }
     cost = -node(x.length - 1)(result(x.length - 1)).bestCost
   }
 
-  def gradient(expected: Array[Double]): Double = {
+  def gradient(expected: ArrayBuffer[Double]): Double = {
     var s: Double = 0.0
     var lNode: Node = null
     var rNode: Node = null
     var lPath: Path = null
     var idx: Int = 0
+    var i: Int = 0
+    var j: Int = 0
+    var row: Int = 0
+    var rIdx: Int = 0
 
     if (x.isEmpty) {
       return 0.0
@@ -198,31 +203,39 @@ private[ml] class Tagger extends Serializable {
     buildLattice()
     forwardBackward()
 
-    for (i <- 0 until x.length - 1) {
-      for (j <- 0 until ysize) {
-        node(i)(j).calExpectation(expected, Z, ysize)
+    while (i < x.length) {
+      while (j < ysize) {
+        node(i)(j).calExpectation(expected, Z, ysize, feature_idx)
+        j += 1
       }
+      i += 1
     }
-    for (row <- 0 until x.length - 1) {
+    i = 0
+    j = 0
+    while (row < x.length) {
       idx = node(row)(answer(row)).fvector
-      while (node(row)(answer(row)).fvector != -1) {
+      rIdx = feature_idx.getFeatureCacheIdx(node(row)(answer(row)).fvector)
+      while (feature_idx.featureCache(rIdx) != -1) {
         expected(idx + answer(row)) -= 1
-        node(row)(answer(row)).fvector += 1
+        rIdx += 1
       }
       s += node(row)(answer(row)).cost
-      for (i <- 0 until node(row)(answer(row)).lpath.length - 1) {
+      while (i < node(row)(answer(row)).lpath.length) {
         lNode = node(row)(answer(row)).lpath(i).lnode
         rNode = node(row)(answer(row)).lpath(i).rnode
         lPath = node(row)(answer(row)).lpath(i)
         if (lNode.y == answer(lNode.x)) {
           idx = lPath.fvector
-          while (lPath.fvector != -1) {
+          rIdx = feature_idx.getFeatureCacheIdx(lPath.fvector)
+          while (feature_idx.featureCache(rIdx) != -1) {
             expected(idx + lNode.y * ysize + rNode.y) -= 1
-            lPath.fvector += 1
+            rIdx += 1
           }
           s += lPath.cost
         }
+        i += 1
       }
+      row += 1
     }
     viterbi()
     Z - s

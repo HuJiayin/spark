@@ -20,10 +20,10 @@ import scala.collection.mutable.ArrayBuffer
 
 private[ml] class Lbfgs {
 
-  private var w: Array[Double] = _
-  private var v: Array[Double] = _
-  private var xi: Array[Double] = _
-  private var diag: Array[Double] = _
+  private var w: ArrayBuffer[Double] = new ArrayBuffer[Double]()
+  private var v: ArrayBuffer[Double] = new ArrayBuffer[Double]()
+  private var xi: ArrayBuffer[Double] = new ArrayBuffer[Double]()
+  private var diag: ArrayBuffer[Double] = new ArrayBuffer[Double]()
   private var iflag: Int = 0
   private var point: Int = 0
   private var ispt: Int = 0
@@ -62,22 +62,27 @@ private[ml] class Lbfgs {
   private var stmax: Double = 0.0
 
 
-  def lbfgs(size: Int, x: Array[Double], f: Double, g: Array[Double], C: Float): Unit = {
+  def lbfgs(size: Int, x: ArrayBuffer[Double], f: Double, g: ArrayBuffer[Double], C: Float): Unit = {
     val msize: Int = 5
     var bound: Int = 0
     var ys: Double = 0.0
     var yy: Double = 0.0
     var cp: Int = 0
+    var j: Int = 1
 
     if (iflag == 0) {
       point = 0
       for (i <- 0 until size) {
-        diag(i) = 1.0
+        diag.append(1.0)
       }
       ispt = size + (msize << 1)
       iypt = ispt + size * msize
-      for (i <- 1 until size) {
-        w(ispt + i) = -g(i) * diag(i)
+      for(i <- 0 until ispt + size){
+        w.append(0.0)
+      }
+      while (j < size) {
+        w.update(ispt + j, -g(j) * diag(j))
+        j += 1
       }
       stp1 = 1.0 / math.sqrt(ddot(size, g, 1, g, 1))
     }
@@ -226,12 +231,12 @@ private[ml] class Lbfgs {
     }
   }
 
-  def ddot(size: Int, v1: Array[Double], v1start: Int,
-           v2: Array[Double], v2start: Int): Double = {
+  def ddot(size: Int, v1: ArrayBuffer[Double], v1start: Int,
+           v2: ArrayBuffer[Double], v2start: Int): Double = {
     var result: Double = 0
     var i: Int = v1start
     var j: Int = v2start
-    while (i < v1start + size && j < v2start + size) {
+    while (i < size && j < size) {
       result = result + v1(i) * v2(j)
       i += 1
       j += 1
@@ -239,8 +244,8 @@ private[ml] class Lbfgs {
     result
   }
 
-  def daxpy(n: Int, da: Double, dx: Array[Double], dxStart: Int,
-            dy: Array[Double], dyStart: Int): Unit = {
+  def daxpy(n: Int, da: Double, dx: ArrayBuffer[Double], dxStart: Int,
+            dy: ArrayBuffer[Double], dyStart: Int): Unit = {
     for (i <- 0 until n) {
       dy(i + dyStart) += da * dx(i + dxStart)
     }

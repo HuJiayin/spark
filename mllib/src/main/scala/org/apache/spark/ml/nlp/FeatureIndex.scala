@@ -21,8 +21,8 @@ import scala.collection.mutable.ArrayBuffer
 
 private[ml] class FeatureIndex extends Serializable {
   var maxid: Int = 0
-  var alpha: Array[Double] = Array[Double]()
-  var alpha_float: Array[Float] = Array[Float]()
+  var alpha: ArrayBuffer[Double] = ArrayBuffer[Double]()
+  var alpha_float: ArrayBuffer[Float] = ArrayBuffer[Float]()
   var cost_factor: Double = 0.0
   var xsize: Integer = 0
   var check_max_xsize: Boolean = false
@@ -41,6 +41,25 @@ private[ml] class FeatureIndex extends Serializable {
     "_B+5", "_B+6", "_B+7", "_B+8")
   val featureCache: ArrayBuffer[Int] = new ArrayBuffer[Int]()
   val featureCacheH: ArrayBuffer[Int] = new ArrayBuffer[Int]()
+
+  def getFeatureCacheIdx(fVal: Int): Int = {
+    var i: Int = 0
+    while(i < featureCache.size){
+      if(featureCache(i) == fVal){
+        return i
+      }
+      i += 1
+    }
+    0
+  }
+
+  def getFeatureCache(): ArrayBuffer[Int] = {
+    featureCache
+  }
+
+  def getFeatureCacheH(): ArrayBuffer[Int] = {
+    featureCacheH
+  }
 
   def openTemplate(filename: String): Unit = {
     val lineIter: Iterator[String] = fromFile(filename).getLines()
@@ -303,12 +322,17 @@ private[ml] class FeatureIndex extends Serializable {
     tagger.x(idx)(col)
   }
 
-  def setAlpha(_alpha: Array[Double]): Unit = {
+  def setAlpha(_alpha: ArrayBuffer[Double]): Unit = {
     alpha = _alpha
   }
 
   def initAlpha(size: Integer): Unit = {
-    alpha = new Array[Double](size)
+    var i: Int = 0
+    // alpha = new ArrayBuffer[Double](size)
+    while(i < size){
+      alpha.append(0.0)
+      i += 1
+    }
     // alpha_float = new Array[Float](size)
   }
 
@@ -337,7 +361,15 @@ private[ml] class FeatureIndex extends Serializable {
     var c: Float = 0
     var cd: Double = 0.0
     var idx: Int = p.fvector
+    var pivot: Int = 0
     p.cost = 0.0
+    while(pivot < featureCache.size){
+      if(featureCache(pivot)==idx){
+        idx = pivot
+        pivot = featureCache.size
+      }
+      pivot += 1
+    }
     if (alpha_float.nonEmpty) {
       while (featureCache(idx) != -1) {
         c += alpha_float(featureCache(idx) +

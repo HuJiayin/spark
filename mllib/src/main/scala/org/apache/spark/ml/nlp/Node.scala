@@ -30,6 +30,7 @@ private[ml] class Node extends Serializable {
   var lpath: ArrayBuffer[Path] = new ArrayBuffer[Path]()
   var rpath: ArrayBuffer[Path] = new ArrayBuffer[Path]()
   val MINUS_LOG_EPSILON = 50
+  var featureCache: ArrayBuffer[Int] = new ArrayBuffer[Int]()
 
   object Node {
     val node = new Node
@@ -66,16 +67,25 @@ private[ml] class Node extends Serializable {
     }
   }
 
-  def calExpectation(expected: Array[Double], Z: Double, size: Integer): Unit = {
+  def calExpectation(expected:ArrayBuffer[Double], Z: Double, size: Integer,
+                     featureIdx: FeatureIndex): Unit = {
     var c: Double = math.exp(alpha + cost + beta - Z)
     val pathObj: Path = new Path()
-    fIdx = fvector
-    while (fvector != -1) {
-      expected(fIdx + y) += c
-      fvector += 1
+    var idx: Int = 0
+    var cc: Double = c
+    // fIdx = fvector
+    idx = fvector
+    featureCache = featureIdx.getFeatureCache()
+
+    while (featureCache(idx) != -1) {
+      // expected(fIdx + y) += c
+      // expected.append(cc)
+      expected.update(featureCache(idx) + y, cc)
+      cc += c
+      idx += 1
     }
     for (i <- 0 until lpath.length - 1) {
-      pathObj.calExpectation(expected, Z, size)
+      pathObj.calExpectation(expected, Z, size, featureCache)
     }
   }
 

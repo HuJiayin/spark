@@ -32,6 +32,9 @@ private[spark] class CRF {
   // private val thrinkingSize = 20
   private val threadNum: Integer = Runtime.getRuntime.availableProcessors()
   private val threadPool: Array[CRFThread] = new Array[CRFThread](threadNum)
+  private var featureIdx: FeatureIndex = new FeatureIndex()
+  // private var fCache: ArrayBuffer[Int] = new ArrayBuffer[Int]()
+  // private var fCacheH: ArrayBuffer[Int] = new ArrayBuffer[Int]()
 
 
   def run(template: String, train: String): Unit = {
@@ -41,20 +44,21 @@ private[spark] class CRF {
   def learn(template: String, train: String): Unit = {
     var tagger: Tagger = new Tagger()
     var taggerList: ArrayBuffer[Tagger] = new ArrayBuffer[Tagger]()
-    var featureIndex: FeatureIndex = new FeatureIndex()
-    featureIndex.openTemplate(template)
-    featureIndex = featureIndex.openTagSet(train)
+    featureIdx.openTemplate(template)
+    featureIdx = featureIdx.openTagSet(train)
     tagger = tagger.read(train)
-    tagger.open(featureIndex)
-    featureIndex.buildFeatures(tagger)
+    tagger.open(featureIdx)
+    featureIdx.buildFeatures(tagger)
     taggerList += tagger
     tagger = null
-    featureIndex.shrink(freq)
-    featureIndex.initAlpha(featureIndex.maxid)
-    runCRF(taggerList, featureIndex, featureIndex.alpha)
+    featureIdx.shrink(freq)
+    featureIdx.initAlpha(featureIdx.maxid)
+    // fCache = featureIndex.getFeatureCache()
+    // fCacheH = featureIndex.getFeatureCacheH()
+    runCRF(taggerList, featureIdx, featureIdx.alpha)
   }
 
-  def runCRF(tagger: ArrayBuffer[Tagger], featureIndex: FeatureIndex, alpha: Array[Double]): Unit = {
+  def runCRF(tagger: ArrayBuffer[Tagger], featureIndex: FeatureIndex, alpha: ArrayBuffer[Double]): Unit = {
     var diff: Double = 0.0
     var old_obj: Double = 1e37
     var converge: Int = 0
@@ -122,10 +126,19 @@ private[spark] class CRF {
     var zeroOne: Int = 0
     var size: Int = 0
     var obj: Double = 0.0
-    val expected: Array[Double] = null
+    val expected: ArrayBuffer[Double] = new ArrayBuffer[Double]()
 
-    override def run: Unit = {
+    def initExpected(): Unit = {
+      var i: Int = 0
+      while(i < featureIdx.maxid){
+        expected.append(0.0)
+        i += 1
+      }
+    }
+
+    override def run(): Unit = {
       var idx: Int = 0
+      initExpected()
       while (idx >= start_i && idx < size) {
         obj += x(idx).gradient(expected)
         err += x(idx).eval()
