@@ -93,8 +93,10 @@ private[ml] class Tagger extends Serializable {
             feature_idx.calcCost(node(i)(j).lpath(k))
             k += 1
           }
+          k = 0
           j += 1
         }
+        j = 0
         i += 1
       }
     }
@@ -106,6 +108,7 @@ private[ml] class Tagger extends Serializable {
           node(i)(j).cost += penalty(i)(j)
           j += 1
         }
+        j = 0
         i +=1
       }
     }
@@ -121,6 +124,7 @@ private[ml] class Tagger extends Serializable {
           node(i)(j).calcAlpha()
           j += 1
         }
+        j = 0
         i += 1
       }
       j = 0
@@ -129,6 +133,7 @@ private[ml] class Tagger extends Serializable {
           node(idx)(j).calcBeta()
           j += 1
         }
+        j = 0
         idx -= 1
       }
       Z = 0.0
@@ -150,26 +155,31 @@ private[ml] class Tagger extends Serializable {
     var k: Int = 0
     while (i < x.length) {
       while (j < ysize) {
-        while (k < node(i)(j).lpath.length - 1) {
+        bestc = -1e37
+        best = null
+        while (k < node(i)(j).lpath.length) {
           cost = node(i)(j).lpath(k).lnode.bestCost
           +node(i)(j).lpath(k).lnode.cost + node(i)(j).cost
           if (cost > bestc) {
             bestc = cost
             best = node(i)(j).lpath(k).lnode
           }
-          node(i)(j).prev = best
-          if (best != null) {
-            node(i)(j).cost = bestc
-          } else {
-            node(i)(j).cost = node(i)(j).cost
-          }
           k += 1
         }
+        node(i)(j).prev = best
+        if (best != null) {
+          node(i)(j).cost = bestc
+        } else {
+          node(i)(j).cost = node(i)(j).cost
+        }
+        k = 0
         j += 1
       }
+      j = 0
       i += 1
     }
     bestc = -1e37
+    best = null
     j = 0
     while (j < ysize) {
       if (node(x.length - 1)(j).bestCost > bestc) {
@@ -208,6 +218,7 @@ private[ml] class Tagger extends Serializable {
         node(i)(j).calExpectation(expected, Z, ysize, feature_idx)
         j += 1
       }
+      j = 0
       i += 1
     }
     i = 0
@@ -219,6 +230,7 @@ private[ml] class Tagger extends Serializable {
         expected(idx + answer(row)) -= 1
         rIdx += 1
       }
+      rIdx = 0
       s += node(row)(answer(row)).cost
       while (i < node(row)(answer(row)).lpath.length) {
         lNode = node(row)(answer(row)).lpath(i).lnode
@@ -231,12 +243,15 @@ private[ml] class Tagger extends Serializable {
             expected(idx + lNode.y * ysize + rNode.y) -= 1
             rIdx += 1
           }
+          rIdx = 0
           s += lPath.cost
         }
         i += 1
       }
+      i = 0
       row += 1
     }
+    i = 0
     viterbi()
     Z - s
   }

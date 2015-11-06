@@ -89,8 +89,10 @@ private[spark] class CRF {
           threadPool(0).expected(k) += alpha(k) / C
           k += 1
         }
+        k = 0
         i += 1
       }
+      i = 0
       if (itr == 0) {
         diff = 1.0
       } else {

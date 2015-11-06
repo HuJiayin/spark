@@ -32,8 +32,8 @@ private[ml] class FeatureIndex extends Serializable {
   var y: Set[String] = Set[String]()
   var templs: String = new String
   //var dic: Map[String, Map[Int, Int]] = Map[String, Map[Int, Int]]()
-  var dic: scala.collection.mutable.Map[String, (Int,Int)] =
-    scala.collection.mutable.Map[String, (Int,Int)]()
+  var dic: scala.collection.mutable.Map[String, (Int, Int)] =
+    scala.collection.mutable.Map[String, (Int, Int)]()
   val kMaxContextSize: Int = 8
   val BOS = Vector[String]("_B-1", "_B-2", "_B-3", "_B-4",
     "_B-5", "_B-6", "_B-7", "_B-8")
@@ -44,8 +44,8 @@ private[ml] class FeatureIndex extends Serializable {
 
   def getFeatureCacheIdx(fVal: Int): Int = {
     var i: Int = 0
-    while(i < featureCache.size){
-      if(featureCache(i) == fVal){
+    while (i < featureCache.size) {
+      if (featureCache(i) == fVal) {
         return i
       }
       i += 1
@@ -83,11 +83,11 @@ private[ml] class FeatureIndex extends Serializable {
     var tag: Array[String] = null
     var i: Int = 0
     var max: Int = 0
-    while ( i < line.length) {
+    while (i < line.length) {
       lineHead = line(i).charAt(0)
       if (lineHead != '\0' && lineHead != ' ' && lineHead != '\t') {
         tag = line(i).split('|')
-        if(tag.size > max){
+        if (tag.size > max) {
           max = tag.size
         }
         y += tag(tag.length - 1)
@@ -118,15 +118,15 @@ private[ml] class FeatureIndex extends Serializable {
 
     if (freq > 1) {
       while (dic.iterator.next() != null) {
-         /* dic.foreach { case (_, con) =>
-          con.foreach(pair => if (pair._2 > freq) {
-            con.update(newMaxId, pair._1)
-          } else {
-            dic - key
-          })
-        } */
-        dic.getOrElse(key,(currId,count))
-        if(count > freq) {
+        /* dic.foreach { case (_, con) =>
+         con.foreach(pair => if (pair._2 > freq) {
+           con.update(newMaxId, pair._1)
+         } else {
+           dic - key
+         })
+       } */
+        dic.getOrElse(key, (currId, count))
+        if (count > freq) {
           dic.getOrElseUpdate(key, (newMaxId, count))
         }
 
@@ -146,39 +146,39 @@ private[ml] class FeatureIndex extends Serializable {
     var j: Int = 0
     var fid = tagger.feature_id
     // var thead_id = tagger.thread_id
-    // tagger.node = new ArrayBuffer[ArrayBuffer[Node]](tagger.x.size)
-    val nodeList: ArrayBuffer[Node] = new ArrayBuffer[Node]()
     var nd = new Node
-    var path = new Path
 
-    while(cur < tagger.x.size){
-      while(i < tagger.ysize){
-        // tagger.node(_) = new ArrayBuffer[Node](i + 1)
+    while (cur < tagger.x.size) {
+      val nodeList: ArrayBuffer[Node] = new ArrayBuffer[Node]()
+      tagger.node.append(nodeList)
+      while (i < tagger.ysize) {
         nd = new Node
         nd.x = cur
         nd.y = i
         nd.fvector = featureCacheH(fid)
         nodeList.append(nd)
-        //tagger.node(cur)(i) = nd
         i += 1
       }
+      i = 0
       fid += 1
-      tagger.node.append(nodeList)
+      tagger.node.update(cur, nodeList)
       cur += 1
     }
-
     cur = 1
     i = 0
-    while(cur < tagger.x.size){
-      while(j < tagger.ysize){
-        while(i< tagger.ysize){
-          path = new Path
-          path.add(tagger.node(cur - 1)(j),tagger.node(cur)(i))
+
+    while (cur < tagger.x.size) {
+      while (j < tagger.ysize) {
+        while (i < tagger.ysize) {
+          val path: Path = new Path
+          path.add(tagger.node(cur - 1)(j), tagger.node(cur)(i))
           path.fvector = featureCacheH(fid)
           i += 1
         }
+        i = 0
         j += 1
       }
+      j = 0
       cur += 1
     }
   }
@@ -226,7 +226,7 @@ private[ml] class FeatureIndex extends Serializable {
           con.update(maxid, 1)
         )
       } */
-      dic.update(src,(maxid,1))
+      dic.update(src, (maxid, 1))
       n = maxid
       if (src.charAt(0) == 'U') {
         // Unigram
@@ -261,7 +261,7 @@ private[ml] class FeatureIndex extends Serializable {
       if (src.charAt(i) == '%') {
         if (src.charAt(i + 1) == 'x') {
           r = getIndex(src.substring(i + 2), idx, tagger)
-          if(r==null){
+          if (r == null) {
             return null
           }
           dest += r
@@ -299,7 +299,7 @@ private[ml] class FeatureIndex extends Serializable {
         }
       } else if (src.charAt(i) == ',') {
         encol = true
-      } else if (src.charAt(i) == ']'){
+      } else if (src.charAt(i) == ']') {
         i = src.length // break
       }
       i += 1
@@ -329,7 +329,7 @@ private[ml] class FeatureIndex extends Serializable {
   def initAlpha(size: Integer): Unit = {
     var i: Int = 0
     // alpha = new ArrayBuffer[Double](size)
-    while(i < size){
+    while (i <= size + 20) {
       alpha.append(0.0)
       i += 1
     }
@@ -339,7 +339,7 @@ private[ml] class FeatureIndex extends Serializable {
   def calcCost(n: Node): Unit = {
     var c: Float = 0
     var cd: Double = 0.0
-    var idx: Int = n.fvector
+    var idx: Int = getFeatureCacheIdx(n.fvector)
 
     n.cost = 0.0
     if (alpha_float.nonEmpty) {
@@ -360,16 +360,8 @@ private[ml] class FeatureIndex extends Serializable {
   def calcCost(p: Path): Unit = {
     var c: Float = 0
     var cd: Double = 0.0
-    var idx: Int = p.fvector
-    var pivot: Int = 0
+    var idx: Int = getFeatureCacheIdx(p.fvector)
     p.cost = 0.0
-    while(pivot < featureCache.size){
-      if(featureCache(pivot)==idx){
-        idx = pivot
-        pivot = featureCache.size
-      }
-      pivot += 1
-    }
     if (alpha_float.nonEmpty) {
       while (featureCache(idx) != -1) {
         c += alpha_float(featureCache(idx) +

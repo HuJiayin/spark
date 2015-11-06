@@ -69,6 +69,11 @@ private[ml] class Lbfgs {
     var yy: Double = 0.0
     var cp: Int = 0
     var j: Int = 1
+    val p5: Double = 0.5
+    val p66: Double = 0.66
+    val xtrapf: Double = 4.0
+    val maxfev: Int = 20
+    var i: Int = 0
 
     if (iflag == 0) {
       point = 0
@@ -77,7 +82,7 @@ private[ml] class Lbfgs {
       }
       ispt = size + (msize << 1)
       iypt = ispt + size * msize
-      for(i <- 0 until ispt + size){
+      for (i <- 0 until ispt + size) {
         w.append(0.0)
       }
       while (j < size) {
@@ -86,9 +91,8 @@ private[ml] class Lbfgs {
       }
       stp1 = 1.0 / math.sqrt(ddot(size, g, 1, g, 1))
     }
-    while (continue) {
-
-      if (iflag != 1 && iflag != 2) {
+    while (true) {
+      if (iflag == 0) {
         iter += 1
         info = 0
         if (iter == 1) {
@@ -98,18 +102,18 @@ private[ml] class Lbfgs {
           for (i <- 1 until size) {
             w(i) = g(i)
           }
-        }
-        if (iter > size) {
-          bound = size
-        }
-        ys = ddot(size, w, iypt + npt + 1, w, ispt + npt + 1)
-        yy = ddot(size, w, iypt + npt + 1, w, iypt + npt + 1)
-        for (i <- 1 until size) {
-          diag(i) = ys / yy
+        } else {
+          if (iter > size) {
+            bound = size
+          }
+          ys = ddot(size, w, iypt + npt + 1, w, ispt + npt + 1)
+          yy = ddot(size, w, iypt + npt + 1, w, iypt + npt + 1)
+          for (i <- 1 until size) {
+            diag(i) = ys / yy
+          }
         }
       }
-
-      if (iflag == 2) {
+      if (iflag != 1 && iter != 1) {
         cp = point
         if (point == 0) {
           cp = msize
@@ -122,15 +126,17 @@ private[ml] class Lbfgs {
 
         bound = math.min(iter - 1, msize)
         cp = point
-        for (i <- 1 until bound) {
+        i = 0
+        while (i < bound) {
           cp -= 1
-          if (cp == -1) cp = msize - 1
+          if (cp == -1) cp = msize
           val sq: Double = ddot(size, w, ispt + cp * size + 1, w, 1)
           val inmc: Int = size + msize + cp + 1
           iycn = iypt + cp * size
           w(inmc) = w(size + cp + 1) * sq
           val d: Double = -w(inmc)
           daxpy(size, d, w, iycn + 1, w, 1)
+          i += 1
         }
         for (i <- 1 until size) {
           w(i) = diag(i) * w(i)
@@ -148,12 +154,18 @@ private[ml] class Lbfgs {
         for (i <- 1 until size) {
           w(ispt + point * size + i) = w(i)
         }
-      }
-      if (iflag == 1) {
-        // parameter adjustment begin//////////////////////////////////////////////////////
-        if (info == -1) {
 
+        nfev = 0
+        stp = 1.0
+        if (iter == 1) {
+          stp = stp1
         }
+        for (i <- 0 until size) {
+          w(i) = g(i)
+        }
+      }
+      // mcsrch
+      if (info != -1) {
         infoc = 1
         if (size <= 0 || stp <= 0.0) {
           return
@@ -176,57 +188,62 @@ private[ml] class Lbfgs {
         sty = 0.0
         fy = finit
         dgy = dginit
-        while (contadj) {
-          if (info != -1) {
-            stmin = stx
-            stmax = stp + xtrapf * (stp - stx)
-            stp = math.max(stp, 1e-20)
-            stp = math.min(stp, 1e20)
-            for (j <- 1 until size) {
-              x(j) = diag(j) + stp * w(j)
-            }
-            info = -1
-            contadj = false
-          } else {
-            info = 0
-            nfev += 1
-            val dg: Double = ddot(size, g, 1, w, 1)
-            val ftest1: Double = finit + stp * dgtest
+      }
+      while (true) {
+        if (info != -1) {
+          stmin = stx
+          stmax = stp + xtrapf * (stp - stx)
+          stp = math.max(stp, 1e-20)
+          stp = math.min(stp, 1e20)
+          for (j <- 1 until size) {
+            x(j) = diag(j) + stp * w(j)
+          }
+          info = -1
+          return
+        } else {
+          info = 0
+          nfev += 1
+          val dg: Double = ddot(size, g, 1, w, 1)
+          val ftest1: Double = finit + stp * dgtest
 
-            if (stp == 1e20 && f <= ftest1 && dg <= dgtest) {
-              info = 5
-            }
-            if (stp == 1e-20 && (f > ftest1 || dg >= dgtest)) {
-              info = 4
-            }
-            if (nfev >= maxfev) {
-              info = 3
-            }
-            if (f <= ftest1 && math.abs(dg) <= 0.9 * (-dginit)) {
-              info = 1
-            }
-            if (info != 0) {
-              contadj = false
-            }
+          if (stp == 1e20 && f <= ftest1 && dg <= dgtest) {
+            info = 5
+          }
+          if (stp == 1e-20 && (f > ftest1 || dg >= dgtest)) {
+            info = 4
+          }
+          if (nfev >= maxfev) {
+            info = 3
+          }
+          if (f <= ftest1 && math.abs(dg) <= 0.9 * (-dginit)) {
+            info = 1
+          }
+          if (info != 0) {
+            return
           }
         }
-        // parameter adjustment end///////////////////////////////////////////////////////
-        if (info == -1) {
-          continue = false
-        }
-        npt = point * size
-        for (i <- 1 until size) {
-          w(ispt + npt + i) = stp * w(ispt + npt + i)
-          w(iypt + npt + i) = g(i) - w(i)
-        }
-        point += 1
-        if (point == msize) point = 0
-        val gnorm: Double = math.sqrt(ddot(size, v, 1, v, 1))
-        val xnorm: Double = math.max(1.0, math.sqrt(ddot(size, x, 1, x, 1)))
-        if (gnorm / xnorm <= eps) {
-          iflag = 0 // OK terminated
-          continue = false
-        }
+      }
+      // mcsrch
+      if (info == -1) {
+        iflag = 1
+        return
+      }
+      if (info != 1) {
+        iflag = -1
+        return
+      }
+      npt = point * size
+      for (i <- 1 until size) {
+        w(ispt + npt + i) = stp * w(ispt + npt + i)
+        w(iypt + npt + i) = g(i) - w(i)
+      }
+      point += 1
+      if (point == msize) point = 0
+      val gnorm: Double = math.sqrt(ddot(size, v, 1, v, 1))
+      val xnorm: Double = math.max(1.0, math.sqrt(ddot(size, x, 1, x, 1)))
+      if (gnorm / xnorm <= eps) {
+        iflag = 0 // OK terminated
+        return
       }
     }
   }
@@ -246,8 +263,10 @@ private[ml] class Lbfgs {
 
   def daxpy(n: Int, da: Double, dx: ArrayBuffer[Double], dxStart: Int,
             dy: ArrayBuffer[Double], dyStart: Int): Unit = {
-    for (i <- 0 until n) {
+    var i: Int = 0
+    while (i < n) {
       dy(i + dyStart) += da * dx(i + dxStart)
+      i += 1
     }
   }
 

@@ -24,11 +24,17 @@ private[ml] class Path extends Serializable{
   var cost: Double = 0.0
   var fvector: Int = 0
   var fIdx: Integer = 0
+  var path: Path = null
 
-  object Path{
-    val path = new Path
-    def getInstance: Path = {path}
+  def getInstance(): Path = {
+    if(path!=null){
+      return path
+    } else {
+      path = new Path
+    }
+    path
   }
+
   def calExpectation(expected : ArrayBuffer[Double], Z: Double,
                      size: Integer,fCache: ArrayBuffer[Int]): Unit = {
     var c: Double = math.exp(lnode.alpha + cost + rnode.beta - Z)

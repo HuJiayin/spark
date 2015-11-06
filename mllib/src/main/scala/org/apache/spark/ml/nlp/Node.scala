@@ -52,40 +52,41 @@ private[ml] class Node extends Serializable {
   }
 
   def calcAlpha(): Unit = {
+    var i: Int = 0
     alpha = 0
-    for (i <- 0 until lpath.length - 1) {
-      alpha = logsumexp(alpha, lpath(i).cost + lpath(i).lnode.cost, i == 0)
+    while (i < lpath.length) {
+      alpha = logsumexp(alpha, lpath(i).cost + lpath(i).lnode.alpha, i == 0)
+      i += 1
     }
     alpha += cost
-
   }
 
   def calcBeta(): Unit = {
+    var i: Int = 0
     beta = 0
-    for (i <- 0 until rpath.length - 1) {
-      beta = logsumexp(beta, rpath(i).cost + rpath(i).rnode.cost, i == 0)
+    while (i < rpath.length) {
+      beta = logsumexp(beta, rpath(i).cost + rpath(i).rnode.beta, i == 0)
+      i += 1
     }
+    beta += cost
   }
 
   def calExpectation(expected:ArrayBuffer[Double], Z: Double, size: Integer,
                      featureIdx: FeatureIndex): Unit = {
     var c: Double = math.exp(alpha + cost + beta - Z)
     val pathObj: Path = new Path()
-    var idx: Int = 0
+    var idx: Int = featureIdx.getFeatureCacheIdx(fvector)
     var cc: Double = c
-    // fIdx = fvector
-    idx = fvector
+    var i: Int = 0
     featureCache = featureIdx.getFeatureCache()
-
     while (featureCache(idx) != -1) {
-      // expected(fIdx + y) += c
-      // expected.append(cc)
       expected.update(featureCache(idx) + y, cc)
       cc += c
       idx += 1
     }
-    for (i <- 0 until lpath.length - 1) {
+    while (i < lpath.length) {
       pathObj.calExpectation(expected, Z, size, featureCache)
+      i += 1
     }
   }
 
