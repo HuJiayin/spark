@@ -73,19 +73,17 @@ private[ml] class Node extends Serializable {
 
   def calExpectation(expected:ArrayBuffer[Double], Z: Double, size: Integer,
                      featureIdx: FeatureIndex): Unit = {
-    var c: Double = math.exp(alpha + cost + beta - Z)
+    val c: Double = math.exp(alpha + cost + beta - Z)
     val pathObj: Path = new Path()
     var idx: Int = featureIdx.getFeatureCacheIdx(fvector)
-    var cc: Double = c
     var i: Int = 0
     featureCache = featureIdx.getFeatureCache()
     while (featureCache(idx) != -1) {
-      expected.update(featureCache(idx) + y, cc)
-      cc += c
+      expected.update(featureCache(idx) + y, c)
       idx += 1
     }
     while (i < lpath.length) {
-      pathObj.calExpectation(expected, Z, size, featureCache)
+      pathObj.calExpectation(expected, Z, size, featureCache, featureIdx)
       i += 1
     }
   }

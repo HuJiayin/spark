@@ -113,7 +113,7 @@ private[ml] class Lbfgs {
           }
         }
       }
-      if (iflag != 1 && iter != 1) {
+      else if (iflag != 1 && iter != 1) {
         cp = point
         if (point == 0) {
           cp = msize
@@ -154,7 +154,7 @@ private[ml] class Lbfgs {
         for (i <- 1 until size) {
           w(ispt + point * size + i) = w(i)
         }
-
+        /*
         nfev = 0
         stp = 1.0
         if (iter == 1) {
@@ -163,6 +163,7 @@ private[ml] class Lbfgs {
         for (i <- 0 until size) {
           w(i) = g(i)
         }
+        */
       }
       // mcsrch
       if (info != -1) {

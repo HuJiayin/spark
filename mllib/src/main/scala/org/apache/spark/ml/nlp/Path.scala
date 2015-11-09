@@ -36,11 +36,12 @@ private[ml] class Path extends Serializable{
   }
 
   def calExpectation(expected : ArrayBuffer[Double], Z: Double,
-                     size: Integer,fCache: ArrayBuffer[Int]): Unit = {
-    var c: Double = math.exp(lnode.alpha + cost + rnode.beta - Z)
+                     size: Integer,fCache: ArrayBuffer[Int],
+                     featureIdx: FeatureIndex): Unit = {
+    val c: Double = math.exp(lnode.alpha + cost + rnode.beta - Z)
     var idx: Int = 0
-    // fIdx = fvector
-    idx = fvector
+    idx = featureIdx.getFeatureCacheIdx(fvector)
+
     while(fCache(idx)!= -1) {
       expected(fCache(idx) + lnode.y*size + rnode.y) += c
       idx += 1

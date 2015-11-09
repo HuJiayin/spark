@@ -227,7 +227,7 @@ private[ml] class Tagger extends Serializable {
       idx = node(row)(answer(row)).fvector
       rIdx = feature_idx.getFeatureCacheIdx(node(row)(answer(row)).fvector)
       while (feature_idx.featureCache(rIdx) != -1) {
-        expected(idx + answer(row)) -= 1
+        expected(feature_idx.featureCache(rIdx) + answer(row)) -= 1
         rIdx += 1
       }
       rIdx = 0
@@ -240,7 +240,7 @@ private[ml] class Tagger extends Serializable {
           idx = lPath.fvector
           rIdx = feature_idx.getFeatureCacheIdx(lPath.fvector)
           while (feature_idx.featureCache(rIdx) != -1) {
-            expected(idx + lNode.y * ysize + rNode.y) -= 1
+            expected(feature_idx.featureCache(rIdx) + lNode.y * ysize + rNode.y) -= 1
             rIdx += 1
           }
           rIdx = 0

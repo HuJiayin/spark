@@ -218,8 +218,9 @@ private[ml] class FeatureIndex extends Serializable {
   }
 
   def getId(src: String): Integer = {
-    var n: Integer = maxid
-    var idx: Integer = 0
+    var n: Int = maxid
+    var idx: Int = 0
+    var fid: Int = 0
     if (dic.get(src).isEmpty) {
       /* dic.foreach { case (src, con) =>
         con.foreach(pair =>
@@ -242,13 +243,14 @@ private[ml] class FeatureIndex extends Serializable {
       // idx = dic.get(src).get(maxid)
       idx = dic.get(src).get._2
       idx += 1
-      dic.update(src, (maxid, idx))
+      fid = dic.get(src).get._1
+      dic.update(src, (fid, idx))
       /* dic.foreach { case (_, con) =>
         con.foreach(pair =>
           con.update(maxid, idx)
         )
       } */
-      return maxid
+      return fid
     }
     -1
   }
