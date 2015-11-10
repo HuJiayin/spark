@@ -196,9 +196,12 @@ private[ml] class Lbfgs {
           stmax = stp + xtrapf * (stp - stx)
           stp = math.max(stp, 1e-20)
           stp = math.min(stp, 1e20)
-          for (j <- 1 until size) {
+          j = 0
+          while (j < size) {
             x(j) = diag(j) + stp * w(j)
+            j += 1
           }
+          j = 0
           info = -1
           return
         } else {

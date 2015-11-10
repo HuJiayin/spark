@@ -30,7 +30,7 @@ private[spark] class CRF {
   private val C: Float = 1
   // Convert
   // private val thrinkingSize = 20
-  private val threadNum: Integer = Runtime.getRuntime.availableProcessors()
+  private val threadNum: Integer = 1// Runtime.getRuntime.availableProcessors()
   private val threadPool: Array[CRFThread] = new Array[CRFThread](threadNum)
   private var featureIdx: FeatureIndex = new FeatureIndex()
   // private var fCache: ArrayBuffer[Int] = new ArrayBuffer[Int]()
@@ -46,8 +46,8 @@ private[spark] class CRF {
     var taggerList: ArrayBuffer[Tagger] = new ArrayBuffer[Tagger]()
     featureIdx.openTemplate(template)
     featureIdx = featureIdx.openTagSet(train)
-    tagger = tagger.read(train)
     tagger.open(featureIdx)
+    tagger = tagger.read(train)
     featureIdx.buildFeatures(tagger)
     taggerList += tagger
     tagger = null
@@ -68,9 +68,11 @@ private[spark] class CRF {
     var i: Int = 0
     var k: Int = 0
 
-    for (i <- 0 until tagger.length - 1) {
+    while (i < tagger.length) {
       all += tagger(i).x.size
+      i += 1
     }
+    i = 0
 
     while (itr <= maxiter) {
       while (i < threadNum) {
@@ -80,11 +82,15 @@ private[spark] class CRF {
         threadPool(i).x = tagger
         threadPool(i).start()
         threadPool(i).join()
-        threadPool(0).obj += threadPool(i).obj
-        threadPool(0).err += threadPool(i).err
-        threadPool(0).zeroOne += threadPool(i).zeroOne
+        if(i > 0) {
+          threadPool(0).obj += threadPool(i).obj
+          threadPool(0).err += threadPool(i).err
+          threadPool(0).zeroOne += threadPool(i).zeroOne
+        }
         while (k < featureIndex.maxid) {
-          threadPool(0).expected(k) += threadPool(i).expected(k)
+          if(i > 0) {
+            threadPool(0).expected(k) += threadPool(i).expected(k)
+          }
           threadPool(0).obj += alpha(k) * alpha(k) / 2.0 * C
           threadPool(0).expected(k) += alpha(k) / C
           k += 1
@@ -99,7 +105,7 @@ private[spark] class CRF {
         diff = math.abs(old_obj - threadPool(0).obj / old_obj)
       }
       old_obj = threadPool(0).obj
-      printf("iter=%d, terr=%e, serr=%e, act=%d, obj=%e,diff=%e",
+      printf("iter=%d, terr=%2.5f, serr=%2.5f, act=%d, obj=%2.5f,diff=%2.5f\n",
         itr, 1.0 * threadPool(0).err / all,
         1.0 * threadPool(0).zeroOne / tagger.size, featureIndex.maxid,
         threadPool(0).obj, diff)

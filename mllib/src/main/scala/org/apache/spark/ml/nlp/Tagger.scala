@@ -47,8 +47,8 @@ private[ml] class Tagger extends Serializable {
     val line: Array[String] = lineIter.toArray
     var i: Int = 0
     var columns: Array[String] = null
-    val s: Integer = x.size
-    var r: Integer = ysize
+    var j: Int = 0
+    val tmp: Array[String] = feature_idx.y.toArray
     while (i < line.length) {
       if (line(i).charAt(0) != '\0'
         && line(i).charAt(0) != ' '
@@ -57,17 +57,19 @@ private[ml] class Tagger extends Serializable {
         x.append(columns)
         if (mode == 2) {
           // LEARN
-          for (i <- 0 until ysize) {
-            if (feature_idx.y(columns(feature_idx.xsize))) {
-              r = i
+          while (j < ysize) {
+            if (tmp(j) == columns(feature_idx.xsize)) {
+              answer.append(j)
+              j = ysize // break
             }
+            j += 1
           }
-          answer.insert(s, r)
+          j = 0
+          result.append(0)
         }
       }
       i += 1
     }
-    result = answer.clone()
     this
   }
 
