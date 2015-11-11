@@ -68,7 +68,7 @@ private[ml] class Lbfgs {
     var ys: Double = 0.0
     var yy: Double = 0.0
     var cp: Int = 0
-    var j: Int = 1
+    var j: Int = 0
     val p5: Double = 0.5
     val p66: Double = 0.66
     val xtrapf: Double = 4.0
@@ -165,13 +165,13 @@ private[ml] class Lbfgs {
         }
         */
       }
-      // mcsrch
+      // mcsrch line search
       if (info != -1) {
         infoc = 1
         if (size <= 0 || stp <= 0.0) {
           return
         }
-        dginit = ddot(size, g, 1, w, 1)
+        dginit = ddot(size, g, 0, w, ispt)
         if (dginit >= 0.0) return
         brackt = false
         stage1 = true
@@ -198,16 +198,15 @@ private[ml] class Lbfgs {
           stp = math.min(stp, 1e20)
           j = 0
           while (j < size) {
-            x(j) = diag(j) + stp * w(j)
+            x(j) = diag(j) + stp * w(j + ispt)
             j += 1
           }
-          j = 0
           info = -1
           return
         } else {
           info = 0
           nfev += 1
-          val dg: Double = ddot(size, g, 1, w, 1)
+          val dg: Double = ddot(size, g, 1, w, ispt)
           val ftest1: Double = finit + stp * dgtest
 
           if (stp == 1e20 && f <= ftest1 && dg <= dgtest) {
@@ -257,7 +256,7 @@ private[ml] class Lbfgs {
     var result: Double = 0
     var i: Int = v1start
     var j: Int = v2start
-    while (i < size && j < size) {
+    while (i < v1.size && j < v2.size) {
       result = result + v1(i) * v2(j)
       i += 1
       j += 1

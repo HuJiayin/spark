@@ -102,7 +102,7 @@ private[spark] class CRF {
       if (itr == 0) {
         diff = 1.0
       } else {
-        diff = math.abs(old_obj - threadPool(0).obj / old_obj)
+        diff = math.abs((old_obj - threadPool(0).obj) / old_obj)
       }
       old_obj = threadPool(0).obj
       printf("iter=%d, terr=%2.5f, serr=%2.5f, act=%d, obj=%2.5f,diff=%2.5f\n",
