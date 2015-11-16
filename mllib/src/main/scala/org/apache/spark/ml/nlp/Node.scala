@@ -18,8 +18,13 @@ package org.apache.spark.ml.nlp
 import scala.collection.mutable.ArrayBuffer
 
 private[ml] class Node extends Serializable {
+<<<<<<< HEAD
   var x: Int = 0
   var y: Int = 0
+=======
+  var x: Integer = 0
+  var y: Integer = 0
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
   var alpha: Double = 0.0
   var beta: Double = 0.0
   var cost: Double = 0.0
@@ -74,7 +79,11 @@ private[ml] class Node extends Serializable {
   def calExpectation(expected:ArrayBuffer[Double], Z: Double, size: Integer,
                      featureIdx: FeatureIndex): Unit = {
     val c: Double = math.exp(alpha + cost + beta - Z)
+<<<<<<< HEAD
     var pathObj: Path = new Path()
+=======
+    val pathObj: Path = new Path()
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
     var idx: Int = featureIdx.getFeatureCacheIdx(fvector)
     var i: Int = 0
     featureCache = featureIdx.getFeatureCache()
@@ -83,7 +92,10 @@ private[ml] class Node extends Serializable {
       idx += 1
     }
     while (i < lpath.length) {
+<<<<<<< HEAD
       pathObj = lpath(i)
+=======
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
       pathObj.calExpectation(expected, Z, size, featureCache, featureIdx)
       i += 1
     }

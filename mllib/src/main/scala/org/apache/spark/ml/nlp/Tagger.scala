@@ -16,17 +16,26 @@
  */
 package org.apache.spark.ml.nlp
 
+<<<<<<< HEAD
 import java.io.{FileOutputStream, File}
 
+=======
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
 import scala.collection.mutable.ArrayBuffer
 import scala.io.Source._
 
 private[ml] class Tagger extends Serializable {
   var mode: Integer = 2
   // LEARN
+<<<<<<< HEAD
   var vlevel: Int = 0
   var nbest: Int = 0
   var ysize: Int = 0
+=======
+  var vlevel: Integer = 0
+  var nbest: Integer = 0
+  var ysize: Integer = 0
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
   var cost: Double = 0.0
   var Z: Double = 0.0
   var feature_id: Integer = 0
@@ -50,7 +59,11 @@ private[ml] class Tagger extends Serializable {
     var i: Int = 0
     var columns: Array[String] = null
     var j: Int = 0
+<<<<<<< HEAD
     // val tmp: Array[String] = feature_idx.y.toArray
+=======
+    val tmp: Array[String] = feature_idx.y.toArray
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
     while (i < line.length) {
       if (line(i).charAt(0) != '\0'
         && line(i).charAt(0) != ' '
@@ -60,7 +73,11 @@ private[ml] class Tagger extends Serializable {
         if (mode == 2) {
           // LEARN
           while (j < ysize) {
+<<<<<<< HEAD
             if (feature_idx.y(j) == columns(feature_idx.xsize)) {
+=======
+            if (tmp(j) == columns(feature_idx.xsize)) {
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
               answer.append(j)
               j = ysize // break
             }
@@ -92,9 +109,15 @@ private[ml] class Tagger extends Serializable {
       feature_idx.rebuildFeatures(this)
       while (i < x.length) {
         while (j < ysize) {
+<<<<<<< HEAD
           node(i)(j) = feature_idx.calcCost(node(i)(j))
           while (k < node(i)(j).lpath.length) {
             node(i)(j).lpath(k) = feature_idx.calcCost(node(i)(j).lpath(k))
+=======
+          feature_idx.calcCost(node(i)(j))
+          while (k < node(i)(j).lpath.length) {
+            feature_idx.calcCost(node(i)(j).lpath(k))
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
             k += 1
           }
           k = 0
@@ -162,7 +185,12 @@ private[ml] class Tagger extends Serializable {
         bestc = -1e37
         best = null
         while (k < node(i)(j).lpath.length) {
+<<<<<<< HEAD
           cost = node(i)(j).lpath(k).lnode.bestCost + node(i)(j).lpath(k).cost + node(i)(j).cost
+=======
+          cost = node(i)(j).lpath(k).lnode.bestCost
+          +node(i)(j).lpath(k).lnode.cost + node(i)(j).cost
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
           if (cost > bestc) {
             bestc = cost
             best = node(i)(j).lpath(k).lnode
@@ -171,9 +199,15 @@ private[ml] class Tagger extends Serializable {
         }
         node(i)(j).prev = best
         if (best != null) {
+<<<<<<< HEAD
           node(i)(j).bestCost = bestc
         } else {
           node(i)(j).bestCost = node(i)(j).cost
+=======
+          node(i)(j).cost = bestc
+        } else {
+          node(i)(j).cost = node(i)(j).cost
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
         }
         k = 0
         j += 1
@@ -193,7 +227,10 @@ private[ml] class Tagger extends Serializable {
     }
     nd = best
     while (nd != null) {
+<<<<<<< HEAD
       // printf("x=%d,y=%d\n", nd.x, nd.y)
+=======
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
       result.update(nd.x, nd.y)
       nd = nd.prev
     }
@@ -289,6 +326,7 @@ private[ml] class Tagger extends Serializable {
     }
     null
   }
+<<<<<<< HEAD
 
   def parse(): Unit = {
     buildLattice()
@@ -321,4 +359,6 @@ private[ml] class Tagger extends Serializable {
     outputStream.write(content.toCharArray.map(_.toByte))
     outputStream.close()
   }
+=======
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
 }

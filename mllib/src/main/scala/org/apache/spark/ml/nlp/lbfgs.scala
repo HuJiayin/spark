@@ -74,26 +74,42 @@ private[ml] class Lbfgs {
     val xtrapf: Double = 4.0
     val maxfev: Int = 20
     var i: Int = 0
+<<<<<<< HEAD
     var persist: Boolean = true
 
     if(w.isEmpty){
       iflag = 0
+=======
+
+    if (iflag == 0) {
+      point = 0
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
       for (i <- 0 until size) {
         diag.append(1.0)
       }
       ispt = size + (msize << 1)
       iypt = ispt + size * msize
+<<<<<<< HEAD
       for (i <- 0 until size * (2 * msize + 1) + 2 * msize) {
         w.append(0.0)
       }
     }
     if (iflag == 0) {
       point = 0
+=======
+      for (i <- 0 until ispt + size) {
+        w.append(0.0)
+      }
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
       while (j < size) {
         w.update(ispt + j, -g(j) * diag(j))
         j += 1
       }
+<<<<<<< HEAD
       stp1 = 1.0 / math.sqrt(ddot(size, g, 0, g, 0))
+=======
+      stp1 = 1.0 / math.sqrt(ddot(size, g, 1, g, 1))
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
     }
     while (true) {
       if (iflag == 0) {
@@ -110,12 +126,19 @@ private[ml] class Lbfgs {
           if (iter > size) {
             bound = size
           }
+<<<<<<< HEAD
           ys = ddot(size, w, iypt + npt, w, ispt + npt)
           yy = ddot(size, w, iypt + npt, w, iypt + npt)
           i = 0
           while (i < size) {
             diag(i) = ys / yy
             i += 1
+=======
+          ys = ddot(size, w, iypt + npt + 1, w, ispt + npt + 1)
+          yy = ddot(size, w, iypt + npt + 1, w, iypt + npt + 1)
+          for (i <- 1 until size) {
+            diag(i) = ys / yy
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
           }
         }
       }
@@ -126,7 +149,11 @@ private[ml] class Lbfgs {
         }
         w(size + cp) = 1.0 / ys
 
+<<<<<<< HEAD
         for (i <- 0 until size) {
+=======
+        for (i <- 1 until size) {
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
           w(i) = -g(i)
         }
 
@@ -136,6 +163,7 @@ private[ml] class Lbfgs {
         while (i < bound) {
           cp -= 1
           if (cp == -1) cp = msize
+<<<<<<< HEAD
           val sq: Double = ddot(size, w, ispt + cp * size, w, 0)
           val inmc: Int = size + msize + cp
           iycn = iypt + cp * size
@@ -166,6 +194,42 @@ private[ml] class Lbfgs {
           w(ispt + point * size + i) = w(i)
           i += 1
         }
+=======
+          val sq: Double = ddot(size, w, ispt + cp * size + 1, w, 1)
+          val inmc: Int = size + msize + cp + 1
+          iycn = iypt + cp * size
+          w(inmc) = w(size + cp + 1) * sq
+          val d: Double = -w(inmc)
+          daxpy(size, d, w, iycn + 1, w, 1)
+          i += 1
+        }
+        for (i <- 1 until size) {
+          w(i) = diag(i) * w(i)
+        }
+        for (i <- 1 until bound) {
+          val yr: Double = ddot(size, w, iypt + cp * size + 1, w, 1)
+          var beta: Double = w(size + cp + 1) * yr
+          val inmc: Int = size + msize + cp + 1
+          beta = w(inmc) - beta
+          iscn = ispt + cp * size
+          daxpy(size, beta, w, iscn + 1, w, 1)
+          cp += 1
+          if (cp == msize) cp = 0
+        }
+        for (i <- 1 until size) {
+          w(ispt + point * size + i) = w(i)
+        }
+        /*
+        nfev = 0
+        stp = 1.0
+        if (iter == 1) {
+          stp = stp1
+        }
+        for (i <- 0 until size) {
+          w(i) = g(i)
+        }
+        */
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
       }
       // mcsrch line search
       if (info != -1) {
@@ -182,10 +246,15 @@ private[ml] class Lbfgs {
         dgtest = ftol * dginit
         width = 1e20 - 1e-20
         width1 = width / p5
+<<<<<<< HEAD
         j = 0
         while (j < size) {
           diag(j) = x(j)
           j += 1
+=======
+        for (j <- 1 until size) {
+          diag(j) = x(j)
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
         }
         stx = 0.0
         fx = finit
@@ -194,7 +263,11 @@ private[ml] class Lbfgs {
         fy = finit
         dgy = dginit
       }
+<<<<<<< HEAD
       while (persist) {
+=======
+      while (true) {
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
         if (info != -1) {
           stmin = stx
           stmax = stp + xtrapf * (stp - stx)
@@ -206,11 +279,19 @@ private[ml] class Lbfgs {
             j += 1
           }
           info = -1
+<<<<<<< HEAD
           persist = false
         } else {
           info = 0
           nfev += 1
           val dg: Double = ddot(size, g, 0, w, ispt)
+=======
+          return
+        } else {
+          info = 0
+          nfev += 1
+          val dg: Double = ddot(size, g, 1, w, ispt)
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
           val ftest1: Double = finit + stp * dgtest
 
           if (stp == 1e20 && f <= ftest1 && dg <= dgtest) {
@@ -226,7 +307,11 @@ private[ml] class Lbfgs {
             info = 1
           }
           if (info != 0) {
+<<<<<<< HEAD
             persist = false
+=======
+            return
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
           }
         }
       }
@@ -240,6 +325,7 @@ private[ml] class Lbfgs {
         return
       }
       npt = point * size
+<<<<<<< HEAD
       i = 0
       while (i < size) {
         w(ispt + npt + i) = stp * w(ispt + npt + i)
@@ -250,6 +336,16 @@ private[ml] class Lbfgs {
       if (point == msize) point = 0
       val gnorm: Double = math.sqrt(ddot(size, v, 0, v, 0))
       val xnorm: Double = math.max(1.0, math.sqrt(ddot(size, x, 0, x, 0)))
+=======
+      for (i <- 1 until size) {
+        w(ispt + npt + i) = stp * w(ispt + npt + i)
+        w(iypt + npt + i) = g(i) - w(i)
+      }
+      point += 1
+      if (point == msize) point = 0
+      val gnorm: Double = math.sqrt(ddot(size, v, 1, v, 1))
+      val xnorm: Double = math.max(1.0, math.sqrt(ddot(size, x, 1, x, 1)))
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
       if (gnorm / xnorm <= eps) {
         iflag = 0 // OK terminated
         return

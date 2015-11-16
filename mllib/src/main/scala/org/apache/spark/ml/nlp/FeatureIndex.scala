@@ -16,9 +16,12 @@
  */
 package org.apache.spark.ml.nlp
 
+<<<<<<< HEAD
 import java.io.{FileOutputStream, File}
 
 import scala.collection.mutable
+=======
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
 import scala.io.Source._
 import scala.collection.mutable.ArrayBuffer
 
@@ -32,7 +35,11 @@ private[ml] class FeatureIndex extends Serializable {
   var max_xsize: Int = 0
   var unigram_templs: ArrayBuffer[String] = new ArrayBuffer[String]()
   var bigram_templs: ArrayBuffer[String] = new ArrayBuffer[String]()
+<<<<<<< HEAD
   var y: ArrayBuffer[String] = ArrayBuffer[String]()
+=======
+  var y: Set[String] = Set[String]()
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
   var templs: String = new String
   //var dic: Map[String, Map[Int, Int]] = Map[String, Map[Int, Int]]()
   var dic: scala.collection.mutable.Map[String, (Int, Int)] =
@@ -86,11 +93,15 @@ private[ml] class FeatureIndex extends Serializable {
     var tag: Array[String] = null
     var i: Int = 0
     var max: Int = 0
+<<<<<<< HEAD
     var j: Int = 1
+=======
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
     while (i < line.length) {
       lineHead = line(i).charAt(0)
       if (lineHead != '\0' && lineHead != ' ' && lineHead != '\t') {
         tag = line(i).split('|')
+<<<<<<< HEAD
         if (tag.length > max) {
           max = tag.length
         }
@@ -112,6 +123,15 @@ private[ml] class FeatureIndex extends Serializable {
       i += 1
       j = i + 1
     }
+=======
+        if (tag.size > max) {
+          max = tag.size
+        }
+        y += tag(tag.length - 1)
+      }
+      i += 1
+    }
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
     xsize = max - 1
     this
   }
@@ -356,7 +376,11 @@ private[ml] class FeatureIndex extends Serializable {
     // alpha_float = new Array[Float](size)
   }
 
+<<<<<<< HEAD
   def calcCost(n: Node): Node = {
+=======
+  def calcCost(n: Node): Unit = {
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
     var c: Float = 0
     var cd: Double = 0.0
     var idx: Int = getFeatureCacheIdx(n.fvector)
@@ -375,10 +399,16 @@ private[ml] class FeatureIndex extends Serializable {
         idx += 1
       }
     }
+<<<<<<< HEAD
     n
   }
 
   def calcCost(p: Path): Path = {
+=======
+  }
+
+  def calcCost(p: Path): Unit = {
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
     var c: Float = 0
     var cd: Double = 0.0
     var idx: Int = getFeatureCacheIdx(p.fvector)
@@ -398,6 +428,7 @@ private[ml] class FeatureIndex extends Serializable {
         idx += 1
       }
     }
+<<<<<<< HEAD
     p
   }
 
@@ -459,6 +490,8 @@ private[ml] class FeatureIndex extends Serializable {
     outputStream.write(contents.toCharArray.map(_.toByte))
     outputStream.close()
 
+=======
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
   }
 }
 

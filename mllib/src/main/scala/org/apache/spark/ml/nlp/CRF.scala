@@ -33,6 +33,7 @@ private[spark] class CRF {
   private val threadNum: Integer = 1// Runtime.getRuntime.availableProcessors()
   private val threadPool: Array[CRFThread] = new Array[CRFThread](threadNum)
   private var featureIdx: FeatureIndex = new FeatureIndex()
+<<<<<<< HEAD
 
   def verify(model: String, test: String, testResult: String): Unit = {
     var tagger: Tagger = new Tagger()
@@ -42,6 +43,14 @@ private[spark] class CRF {
     tagger.parse()
     out = tagger.createOutput()
     tagger.saveTestResult(out, testResult)
+=======
+  // private var fCache: ArrayBuffer[Int] = new ArrayBuffer[Int]()
+  // private var fCacheH: ArrayBuffer[Int] = new ArrayBuffer[Int]()
+
+
+  def run(template: String, train: String): Unit = {
+    learn(template, train)
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
   }
 
   def learn(template: String, train: String): Unit = {
@@ -56,8 +65,14 @@ private[spark] class CRF {
     tagger = null
     featureIdx.shrink(freq)
     featureIdx.initAlpha(featureIdx.maxid)
+<<<<<<< HEAD
     runCRF(taggerList, featureIdx, featureIdx.alpha)
     featureIdx.save("/home/hujiayin/git/CRFConfig/model_file.txt")
+=======
+    // fCache = featureIndex.getFeatureCache()
+    // fCacheH = featureIndex.getFeatureCacheH()
+    runCRF(taggerList, featureIdx, featureIdx.alpha)
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
   }
 
   def runCRF(tagger: ArrayBuffer[Tagger], featureIndex: FeatureIndex, alpha: ArrayBuffer[Double]): Unit = {
@@ -119,14 +134,23 @@ private[spark] class CRF {
       if (converge == 3) {
         itr = maxiter + 1 // break
       }
+<<<<<<< HEAD
       if (diff == 0){
         itr = maxiter + 1 // break
       }
+=======
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
       lbfgs.lbfgs(featureIndex.maxid, alpha, threadPool(0).obj, threadPool(0).expected, C)
       itr += 1
     }
   }
 
+<<<<<<< HEAD
+=======
+  def TestCRF(): Unit = {
+
+  }
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
 
 
   private[ml] class CRFThread extends Thread {
@@ -168,11 +192,15 @@ private[spark] class CRF {
 object CRF {
   def runCRF(template: String, train: String): Unit = {
     val crf = new CRF()
+<<<<<<< HEAD
     crf.learn(template, train)
   }
 
   def verifyCRF(model: String, test: String, testResult: String): Unit = {
     val crf = new CRF()
     crf.verify(model,test,testResult)
+=======
+    crf.run(template, train)
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
   }
 }

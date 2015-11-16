@@ -20,8 +20,13 @@ import org.apache.spark.{Logging, SparkFunSuite}
 import org.scalatest.{Matchers, BeforeAndAfterAll}
 
 class CRFTests extends SparkFunSuite with BeforeAndAfterAll with Matchers with Logging {
+<<<<<<< HEAD
   CRF.verifyCRF("/home/hujiayin/git/CRFConfig/model_file",
     "/home/hujiayin/git/CRFConfig/test_file","/home/hujiayin/git/CRFConfig/test_result")
   CRF.runCRF("/home/hujiayin/git/CRFConfig/template_file",
     "/home/hujiayin/git/CRFConfig/train_file")
 }
+=======
+  CRF.runCRF("/home/hujiayin/Downloads/template_file", "/home/hujiayin/Downloads/train_file")
+}
+>>>>>>> 575fb04776f6334c691eb3d5e7d00c319ae03548
