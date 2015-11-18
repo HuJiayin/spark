@@ -25,12 +25,8 @@ private[spark] class CRF {
   private val maxiter: Integer = 100000
   private val cost: Double = 1.0
   private val eta: Double = 0.0001
-  // private val threadID: Integer = 1
-  // private val modelFile: String = ""
   private val C: Float = 1
-  // Convert
-  // private val thrinkingSize = 20
-  private val threadNum: Integer = 1// Runtime.getRuntime.availableProcessors()
+  private val threadNum: Integer = Runtime.getRuntime.availableProcessors()
   private val threadPool: Array[CRFThread] = new Array[CRFThread](threadNum)
   private var featureIdx: FeatureIndex = new FeatureIndex()
 
@@ -40,8 +36,7 @@ private[spark] class CRF {
     featureIdx = featureIdx.openTagSet(test)
     tagger.open(featureIdx)
     tagger = tagger.read(test)
-    //featureIdx.buildFeatures(tagger)
-    featureIdx.openFromArray("/home/hujiayin/git/CRFConfig/model_file")
+    featureIdx.openFromArray("./CRFConfig/model_file")
     tagger.parse()
     out = tagger.createOutput()
     tagger.saveTestResult(out, testResult)
@@ -60,8 +55,8 @@ private[spark] class CRF {
     featureIdx.shrink(freq)
     featureIdx.initAlpha(featureIdx.maxid)
     runCRF(taggerList, featureIdx, featureIdx.alpha)
-    featureIdx.save("/home/hujiayin/git/CRFConfig/model_file.txt",
-      "/home/hujiayin/git/CRFConfig/model_file")
+    featureIdx.save("./CRFConfig/model_file.txt",
+      "./CRFConfig/model_file")
   }
 
   def runCRF(tagger: ArrayBuffer[Tagger], featureIndex: FeatureIndex, alpha: ArrayBuffer[Double]): Unit = {

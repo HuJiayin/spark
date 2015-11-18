@@ -39,7 +39,6 @@ private[ml] class Node extends Serializable {
     }
   }
 
-
   def logsumexp(x: Double, y: Double, flg: Boolean): Double = {
     if (flg) return y
     val vMin: Double = math.min(x, y)

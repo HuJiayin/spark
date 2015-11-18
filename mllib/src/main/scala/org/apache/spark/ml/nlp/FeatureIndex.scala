@@ -137,13 +137,6 @@ private[ml] class FeatureIndex extends Serializable {
 
     if (freq > 1) {
       while (dic.iterator.next() != null) {
-        /* dic.foreach { case (_, con) =>
-         con.foreach(pair => if (pair._2 > freq) {
-           con.update(newMaxId, pair._1)
-         } else {
-           dic - key
-         })
-       } */
         dic.getOrElse(key, (currId, count))
         if (count > freq) {
           dic.getOrElseUpdate(key, (newMaxId, count))
@@ -164,7 +157,6 @@ private[ml] class FeatureIndex extends Serializable {
     var i: Int = 0
     var j: Int = 0
     var fid = tagger.feature_id
-    // var thead_id = tagger.thread_id
     var nd = new Node
 
     while (cur < tagger.x.size) {
@@ -241,11 +233,6 @@ private[ml] class FeatureIndex extends Serializable {
     var idx: Int = 0
     var fid: Int = 0
     if (dic.get(src).isEmpty) {
-      /* dic.foreach { case (src, con) =>
-        con.foreach(pair =>
-          con.update(maxid, 1)
-        )
-      } */
       dic.update(src, (maxid, 1))
       n = maxid
       if (src.charAt(0) == 'U') {
@@ -259,19 +246,12 @@ private[ml] class FeatureIndex extends Serializable {
       return n
     }
     else {
-      // idx = dic.get(src).get(maxid)
       idx = dic.get(src).get._2
       idx += 1
       fid = dic.get(src).get._1
       dic.update(src, (fid, idx))
-      /* dic.foreach { case (_, con) =>
-        con.foreach(pair =>
-          con.update(maxid, idx)
-        )
-      } */
       return fid
     }
-    -1
   }
 
   def applyRule(src: String, idx: Integer, tagger: Tagger): String = {
@@ -349,12 +329,10 @@ private[ml] class FeatureIndex extends Serializable {
 
   def initAlpha(size: Integer): Unit = {
     var i: Int = 0
-    // alpha = new ArrayBuffer[Double](size)
     while (i <= size + 20) {
       alpha.append(0.0)
       i += 1
     }
-    // alpha_float = new Array[Float](size)
   }
 
   def calcCost(n: Node): Node = {
