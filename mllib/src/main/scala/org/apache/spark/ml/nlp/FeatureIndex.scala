@@ -16,8 +16,9 @@
  */
 package org.apache.spark.ml.nlp
 
-import java.io.{FileOutputStream, File}
+import java.io.{ByteArrayOutputStream, FileInputStream, FileOutputStream, File}
 
+import scala.StringBuilder
 import scala.collection.mutable
 import scala.io.Source._
 import scala.collection.mutable.ArrayBuffer
@@ -401,17 +402,18 @@ private[ml] class FeatureIndex extends Serializable {
     p
   }
 
-  def save(fileName: String): Unit = {
-    var y_str: String = null
+  def save(fileName: String, binFile: String): Unit = {
+    var y_str: String = ""
     var i: Int = 0
-    var templ_str: String = null
+    var templ_str: String = ""
     val keys: ArrayBuffer[String] = new ArrayBuffer[String]()
-    val value: ArrayBuffer[Int] = new ArrayBuffer[Int]()
-    val key: String = null
-    val id: Int = 0
-    var contents: String = null
+    val values: ArrayBuffer[Int] = new ArrayBuffer[Int]()
+    var contents: String = ""
+    val sb: mutable.StringBuilder = new StringBuilder()
     val outputFile = new File(fileName)
     val outputStream = new FileOutputStream(outputFile)
+    val bFile = new File(binFile)
+    val bStream = new FileOutputStream(bFile)
 
     while(i < y.size){
       y_str += y(i)
@@ -421,44 +423,120 @@ private[ml] class FeatureIndex extends Serializable {
     i = 0
     while(i < unigram_templs.size){
       templ_str += unigram_templs(i)
-      templ_str += '\0'
+      templ_str += "\0"
       i += 1
     }
     i = 0
     while(i < bigram_templs.size){
       templ_str += bigram_templs(i)
-      templ_str += '\0'
+      templ_str += "\0"
       i += 1
     }
     while((y_str.length + templ_str.length)%4 != 0 ){
-      templ_str += '\0'
-    }
-    i = 0
-    while(i < dic.size){
-      dic.getOrElse(key,(id,_))
-      keys.append(key)
-      value.append(id)
-      i += 1
+      templ_str += "\0"
     }
 
-    contents += "maxid_" + maxid
-    contents += "xsize" + xsize + '\n'
-    contents += y_str + '\n'
-    contents += templ_str + '\n'
+    dic.foreach{(pair) => keys.append(pair._1)}
+    dic.foreach{(pair) => values.append(pair._2._1)}
+
+    contents += "maxid_" + maxid + "\n"
+    contents += "xsize" + xsize + "\n"
+    contents += y_str + "\n"
+    contents += templ_str + "\n"
     i = 0
     while(i < keys.size){
-      contents += key(i) + " "
-      contents += value(i) + '\n'
+      contents += keys(i) + " " + values(i) + "\n"
       i += 1
     }
+    outputStream.write(contents.toCharArray.map(_.toByte))
+    contents = ""
     i = 0
     while(i < maxid){
-      contents += alpha(i) + '\n'
+      contents += alpha(i) + "\n"
       i += 1
     }
     outputStream.write(contents.toCharArray.map(_.toByte))
     outputStream.close()
 
+    contents += "a" + "\n"
+    i = 0
+    while(i < featureCache.size){
+      contents += featureCache(i) + "\n"
+      i += 1
+    }
+    contents += "b" + "\n"
+    i = 0
+    while(i < featureCacheH.size){
+      contents += featureCacheH(i) + "\n"
+      i += 1
+    }
+    contents += "c"
+    bStream.write(contents.toCharArray.map(_.toByte))
+    bStream.close()
+  }
+
+  def openFromArray(binFile: String, encoding: String = "UTF-8"): Unit = {
+    val inStream = new FileInputStream(binFile)
+    val outStream = new ByteArrayOutputStream
+    try {
+      var reading = true
+      while ( reading ) {
+        inStream.read() match {
+          case 'c' => reading = false
+          case c => outStream.write(c)
+        }
+      }
+      outStream.flush()
+    }
+    finally {
+      inStream.close()
+    }
+    val contents: String = new String(outStream.toByteArray, encoding)
+    var i: Int = 0
+    var j: Int = 0
+    var d: String = ""
+    var readAlpha: Boolean = true
+    var readFCache: Boolean = false
+    var readFCacheH: Boolean = false
+    while (i < contents.length) {
+      if (contents(i) == 'a') {
+        readAlpha = false
+        readFCache = true
+        i += 2
+      } else if (contents(i) == 'b') {
+        readFCache = false
+        readFCacheH = true
+        i += 2
+      }
+      if (readAlpha) {
+        if (contents(i) != '\n') {
+          d += contents(i)
+        } else {
+          alpha.append(d.toDouble)
+          d = ""
+          j += 1
+        }
+      } else if (readFCache) {
+        j = 0
+        if (contents(i) != '\n') {
+          d += contents(i)
+        } else {
+          featureCache.append(d.toInt)
+          d = ""
+          j += 1
+        }
+      } else if (readFCacheH) {
+        j = 0
+        if (contents(i) != '\n') {
+          d += contents(i)
+        } else {
+          featureCacheH.append(d.toInt)
+          d = ""
+          j += 1
+        }
+      }
+      i += 1
+    }
   }
 }
 

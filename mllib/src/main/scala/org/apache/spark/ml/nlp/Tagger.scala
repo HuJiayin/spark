@@ -301,17 +301,17 @@ private[ml] class Tagger extends Serializable {
   def createOutput(): String = {
     var i: Int = 0
     var j: Int = 0
-    var content: String = null
+    var content: String = ""
     while(i < x.size){
       while(j < x(i).length){
-        content += x(i) + "|"
+        content += x(i)(j) + "|"
         j += 1
       }
       content += feature_idx.y(result(i))
       i += 1
+      j = 0
       content += "\n"
     }
-    content += "\n"
     content
   }
 

@@ -38,7 +38,10 @@ private[spark] class CRF {
     var tagger: Tagger = new Tagger()
     var out: String = null
     featureIdx = featureIdx.openTagSet(test)
+    tagger.open(featureIdx)
     tagger = tagger.read(test)
+    //featureIdx.buildFeatures(tagger)
+    featureIdx.openFromArray("/home/hujiayin/git/CRFConfig/model_file")
     tagger.parse()
     out = tagger.createOutput()
     tagger.saveTestResult(out, testResult)
@@ -57,7 +60,8 @@ private[spark] class CRF {
     featureIdx.shrink(freq)
     featureIdx.initAlpha(featureIdx.maxid)
     runCRF(taggerList, featureIdx, featureIdx.alpha)
-    featureIdx.save("/home/hujiayin/git/CRFConfig/model_file.txt")
+    featureIdx.save("/home/hujiayin/git/CRFConfig/model_file.txt",
+      "/home/hujiayin/git/CRFConfig/model_file")
   }
 
   def runCRF(tagger: ArrayBuffer[Tagger], featureIndex: FeatureIndex, alpha: ArrayBuffer[Double]): Unit = {
@@ -127,8 +131,6 @@ private[spark] class CRF {
     }
   }
 
-
-
   private[ml] class CRFThread extends Thread {
     var x: ArrayBuffer[Tagger] = null
     var start_i: Int = 0
@@ -159,9 +161,6 @@ private[spark] class CRF {
       }
     }
   }
-
-  // def readParameters(template: String, train: String): Unit ={}
-
 }
 
 @DeveloperApi
