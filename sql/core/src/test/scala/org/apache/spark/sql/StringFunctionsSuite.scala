@@ -159,7 +159,11 @@ class StringFunctionsSuite extends QueryTest with SharedSQLContext {
   test("soundex function") {
     val df = Seq(("MARY", "SU")).toDF("l", "r")
     checkAnswer(
+<<<<<<< HEAD
       df.select(soundex($"l"), soundex($"r")), Row("M600", "S000"))
+=======
+      df.select(soundex("l"), soundex($"r")), Row("M600", "S000"))
+>>>>>>> 2538908493125c804c9357dc0c59e224bb23d508
 
     checkAnswer(
       df.selectExpr("SoundEx(l)", "SoundEx(r)"), Row("M600", "S000"))

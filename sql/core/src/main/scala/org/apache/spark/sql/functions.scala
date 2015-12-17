@@ -2131,9 +2131,30 @@ object functions extends LegacyFunctions {
   }
 
   /**
+<<<<<<< HEAD
    * Substring starts at `pos` and is of length `len` when str is String type or
    * returns the slice of byte array that starts at `pos` in byte and is of length `len`
    * when str is Binary type
+=======
+   * * Return the soundex code for the specified expression.
+   *
+   * @group string_funcs
+   * @since 1.5.0
+   */
+  def soundex(e: Column): Column = SoundEx(e.expr)
+
+  /**
+   * Return the soundex for the specified column.
+   *
+   * @group string_funcs
+   * @since 1.5.0
+   */
+  def soundex(columnName: String): Column = soundex(Column(columnName))
+
+  /**
+   * Splits str around pattern (pattern is a regular expression).
+   * NOTE: pattern is a string represent the regular expression.
+>>>>>>> 2538908493125c804c9357dc0c59e224bb23d508
    *
    * @group string_funcs
    * @since 1.5.0
