@@ -60,7 +60,7 @@ private[mllib] class Tagger extends Serializable {
         columns = lines(i).split('|')
         x.append(columns)
         while (j < ysize) {
-          if (feature_idx.y(j) == columns(feature_idx.xsize)) {
+          if (feature_idx.y(j) == columns(columns.length - 1)) {
             answer.append(j)
             j = ysize // break
           }
