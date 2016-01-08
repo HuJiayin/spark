@@ -83,18 +83,22 @@ object ConditionalRandomFieldExample {
     val modelRDD = sc.parallelize(model.load(sc, modelPath).CRFSeries)
     val newResult = CRF.verifyCRF(rowRddT, modelRDD)
     var idx: Int = 0
+    var i: Int = 0
     var temp: String = ""
-    while (idx < newResult.CRFSeries(0).length) {
-      temp += newResult.CRFSeries(0)(idx)
-      if ((idx + 1) % 3 == 0) {
-        // scalastyle:off println
-        println(temp)
-        // scalastyle:on println
-        temp = ""
+    while (i < newResult.CRFSeries.length) {
+      while (idx < newResult.CRFSeries(i).length) {
+        temp += newResult.CRFSeries(i)(idx)
+        if ((idx + 1) % 3 == 0) {
+          // scalastyle:off println
+          println(temp)
+          // scalastyle:on println
+          temp = ""
+        }
+        idx += 1
       }
-      idx += 1
+      idx = 0
+      i += 1
     }
-
     sc.stop()
   }
 
