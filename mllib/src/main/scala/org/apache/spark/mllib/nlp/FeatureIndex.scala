@@ -106,9 +106,6 @@ private[mllib] class FeatureIndex extends Serializable {
     }
     i = 0
     while (i < y.size) {
-      if (y(i) > "9" || y(i) < "0") {
-        y.remove(i) // remove corrupted token
-      }
       while (j < y.size) {
         if (y(i) == y(j)) {
           y.remove(j)

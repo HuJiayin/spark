@@ -232,9 +232,17 @@ object CRF {
     val test: Array[Array[String]] = tests.toLocalIterator.toArray
     val model: Array[Array[String]] = models.toLocalIterator.toArray
     sc = tests.sparkContext
+    // val r: ArrayBuffer[String] = new ArrayBuffer[String]()
     val finalArray = test.indices.map(idx => {
       val crf = new CRF()
-      val result: Array[String] = crf.verify(test(idx), model(idx))
+      // var i: Int = 0
+      val result: Array[String] = crf.verify(test(idx), model(0))
+      // while(i<model.length) {
+        // result = crf.verify(test(idx), model(i))
+        // i += 1
+        // r.appendAll(result)
+      // }
+      // r.toArray
       result
     }).toArray
     new CRFModel(finalArray)
