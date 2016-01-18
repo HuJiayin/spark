@@ -70,8 +70,8 @@ object ConditionalRandomFieldExample {
     val crf = new ConditionalRandomField()
     val model = crf.train(templateDF, featureDF, sc)
     */
-    val rowRDD = sc.textFile(template).filter(_.nonEmpty).map(_.split("\t"))
-    val rowRddF = sc.textFile(feature).filter(_.nonEmpty).map(_.split("\t"))
+    val rowRDD = sc.textFile(template).filter(_.nonEmpty)
+    val rowRddF = sc.textFile(feature).filter(_.nonEmpty)
 
     val crf = new ConditionalRandomField()
     val model = crf.trainRdd(rowRDD, rowRddF, sc)
@@ -79,9 +79,10 @@ object ConditionalRandomFieldExample {
     val modelPath = "/home/hujiayin/git/CRFConfig/CRFOutput"
     model.save(sc, modelPath)
 
-    val rowRddT = sc.textFile(test).filter(_.nonEmpty).map(_.split("\t"))
-    val modelRDD = sc.parallelize(model.load(sc, modelPath).CRFSeries)
-    val newResult = CRF.verifyCRF(rowRddT, modelRDD)
+    val rowRddT = sc.textFile(test).filter(_.nonEmpty)
+    val modelRDD = sc.parallelize(model.load(sc, modelPath).CRFSeries(0))
+    // don't support multiple template and feature batch mode
+    val newResult = CRF.verifyCRF(rowRddT, modelRDD, sc)
     var idx: Int = 0
     var i: Int = 0
     var temp: String = ""

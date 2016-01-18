@@ -31,7 +31,7 @@ class CRFTests extends SparkFunSuite with Logging with Serializable {
     .setMaster("local[2]")
     .setAppName("MLlibUnitTest")
   @transient var sc: SparkContext = new SparkContext(conf)
-  val dic = Array(Array(
+  val dic = Array(
     "gram",
     "U00:%x[-2,0]",
     "U01:%x[-1,0]",
@@ -53,12 +53,12 @@ class CRFTests extends SparkFunSuite with Logging with Serializable {
     "U21:%x[-1,1]/%x[0,1]/%x[1,1]",
     "U22:%x[0,1]/%x[1,1]/%x[2,1]",
     "# Bigram",
-    "B")
+    "B"
   )
 
   val template = sc.parallelize(dic)
 
-  val file = Array(Array(
+  val file = Array(
     "He|PRP|B-NP",
     "reckons|VBZ|B-VP",
     "the|DT|B-NP",
@@ -74,33 +74,42 @@ class CRFTests extends SparkFunSuite with Logging with Serializable {
     "billion|CD|I-NP",
     "in|IN|B-PP",
     "September|NNP|B-NP",
-    ".|.|O"
-  ))
+    ".|.|O",
+    "\n",
+    "He|PRP|B-NP",
+    "reckons|VNZ|B-NP",
+    "\n"
+  )
 
   val modelPath = "/home/hujiayin/git/CRFConfig/CRFModel"
   val resultPath = "/home/hujiayin/git/CRFConfig/CRFResult"
   val src = sc.parallelize(file).cache()
-  val CRFModel = CRF.runCRF(template, src)
+  val CRFModel = CRF.runCRF(template, src, sc)
   CRFModel.save(sc,modelPath)
-  val modelRDD = sc.parallelize(CRFModel.load(sc,modelPath).CRFSeries)
-  val result = CRF.verifyCRF(src, modelRDD)
+  val modelRDD = sc.parallelize(CRFModel.load(sc,modelPath).CRFSeries(0))
+  val result = CRF.verifyCRF(src, modelRDD, sc)
   result.save(sc,resultPath)
   var idx: Int = 0
+  var i: Int = 0
   var temp: String = ""
   println("Word|WordCategory|Label|PredictiveLabel")
   println("---------------------------------------")
-  while(idx < result.CRFSeries(0).length) {
-    temp += result.CRFSeries(0)(idx)
-    if((idx + 1) % 4 == 0) {
-      // scalastyle:off println
-      println(temp)
-      // scalastyle:on println
-      temp = ""
+  while(idx < result.CRFSeries.length) {
+    while(i < result.CRFSeries(idx).length) {
+      temp += result.CRFSeries(idx)(i)
+      if ((i + 1) % 4 == 0) {
+        // scalastyle:off println
+        println(temp)
+        // scalastyle:on println
+        temp = ""
+      }
+      i += 1
     }
+    i = 0
     idx += 1
   }
 
-  val newFile = Array(Array(
+  val newFile = Array(
     "Confidence|NN",
     "in|IN",
     "the|DT",
@@ -117,20 +126,27 @@ class CRFTests extends SparkFunSuite with Logging with Serializable {
     "trade|NN",
     "figures|NNS",
     "for|IN",
-    "September|NNP"
-  ))
+    "September|NNP",
+    "\n"  // add"\n" at the end of a paragraph
+  )
+
   val newSrc = sc.parallelize(newFile).cache()
-  val newResult = CRF.verifyCRF(newSrc, modelRDD)
+  val newResult = CRF.verifyCRF(newSrc, modelRDD, sc)
   idx = 0
+  i = 0
   temp = ""
-  while(idx < newResult.CRFSeries(0).length) {
-    temp += newResult.CRFSeries(0)(idx)
-    if((idx + 1) % 3 == 0) {
-      // scalastyle:off println
-      println(temp)
-      // scalastyle:on println
-      temp = ""
+  while(idx < newResult.CRFSeries.length) {
+    while(i < newResult.CRFSeries(idx).length) {
+      temp += newResult.CRFSeries(idx)(i)
+      if ((i + 1) % 3 == 0) {
+        // scalastyle:off println
+        println(temp)
+        // scalastyle:on println
+        temp = ""
+      }
+      i += 1
     }
+    i = 0
     idx += 1
   }
 

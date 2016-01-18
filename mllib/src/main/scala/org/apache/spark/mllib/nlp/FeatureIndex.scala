@@ -18,6 +18,7 @@ package org.apache.spark.mllib.nlp
 
 import org.apache.spark.mllib.linalg.Vector
 import org.apache.spark.SparkContext
+import org.apache.spark.rdd.RDD
 import scala.collection.mutable.ArrayBuffer
 
 
@@ -84,10 +85,11 @@ private[mllib] class FeatureIndex extends Serializable {
    * Parse the feature file. If Sentences or paragraphs are defined as a unit
    * for processing, they should be saved in a string. Multiple units are saved
    * in the RDD.
-   * @param lines the unit source file
+   * @param line the unit source file
    * @return
    */
-  def openTagSet(lines: Array[String]): FeatureIndex = {
+  def openTagSet(line: RDD[String]): FeatureIndex = {
+    val lines: Array[String] = line.toLocalIterator.toArray
     var lineHead = lines(0).charAt(0)
     var tag: Array[String] = null
     var i: Int = 0
@@ -95,7 +97,8 @@ private[mllib] class FeatureIndex extends Serializable {
     var j: Int = 1
     while (i < lines.length) {
       lineHead = lines(i).charAt(0)
-      if (lineHead != '\0' && lineHead != ' ' && lineHead != '\t') {
+      if (lineHead != '\0' && lineHead != ' '
+        && lineHead != '\t' && lineHead != '\n') {
         tag = lines(i).split('|')
         if (tag.length > max) {
           max = tag.length
@@ -357,13 +360,15 @@ private[mllib] class FeatureIndex extends Serializable {
 
     n.cost = 0.0
     if (alpha_float.nonEmpty) {
-      while (featureCache(idx) != -1) {
+      while (featureCache(idx) != -1 &&
+        featureCache(idx) + n.y < alpha_float.length) {
         c += alpha_float(featureCache(idx) + n.y)
         n.cost = c
         idx += 1
       }
     } else if (alpha.nonEmpty) {
-      while (featureCache(idx) != -1) {
+      while (featureCache(idx) != -1 &&
+        featureCache(idx) + n.y < alpha.length) {
         cd += alpha(featureCache(idx) + n.y)
         n.cost = cd
         idx += 1
@@ -378,14 +383,16 @@ private[mllib] class FeatureIndex extends Serializable {
     var idx: Int = getFeatureCacheIdx(p.fvector)
     p.cost = 0.0
     if (alpha_float.nonEmpty) {
-      while (featureCache(idx) != -1) {
+      while (featureCache(idx) != -1 && featureCache(idx) +
+        p.lnode.y * y.size + p.rnode.y < alpha_float.length) {
         c += alpha_float(featureCache(idx) +
           p.lnode.y * y.size + p.rnode.y)
         p.cost = c
         idx += 1
       }
     } else if (alpha.nonEmpty) {
-      while (featureCache(idx) != -1) {
+      while (featureCache(idx) != -1 && featureCache(idx)
+        + p.lnode.y * y.size + p.rnode.y < alpha.length) {
         cd += alpha(featureCache(idx) +
           p.lnode.y * y.size + p.rnode.y)
         p.cost = cd
@@ -443,10 +450,11 @@ private[mllib] class FeatureIndex extends Serializable {
     contents.toArray
   }
 
-  def saveModel: Array[String] = {
+  def saveModel(trace: Boolean, alp: RDD[Double]): Array[String] = {
     val contents: ArrayBuffer[String] = new ArrayBuffer[String]
+    val alpha: Array[Double] = alp.toLocalIterator.toArray
     var i: Int = 0
-
+    contents.append("FeatureCache")
     while (i < featureCache.size) {
       contents.append(featureCache(i).toString)
       i += 1
@@ -469,29 +477,43 @@ private[mllib] class FeatureIndex extends Serializable {
       contents.append(alpha(i).toString)
       i += 1
     }
-    contents.append("Trace")
-    contents.appendAll(saveModelTxt)
+    if(trace) {
+      contents.append("Trace")
+      contents.appendAll(saveModelTxt)
+    }
     contents.toArray
   }
 
-  def openFromArray(contents: Array[String]): FeatureIndex = {
+  def openFromArray(content: RDD[String]): FeatureIndex = {
+    val contents: Array[String] = content.toLocalIterator.toArray
     var i: Int = 0
-    var readFCache: Boolean = true
+    var readFCache: Boolean = false
     var readFCacheH: Boolean = false
     var readAlpha: Boolean = false
     var readLabel: Boolean = false
     while (i < contents.length) {
       if (contents(i) == "FeatureCacheHeader") {
-        readFCache = false
         readFCacheH = true
+        readFCache = false
+        readAlpha = false
+        readLabel = false
         i += 1
       } else if (contents(i) == "Labels") {
         readLabel = true
         readFCacheH = false
+        readFCache = false
+        readAlpha = false
+        i += 1
+      } else if (contents(i) == "FeatureCache") {
+        readFCache = true
+        readFCacheH = false
+        readLabel = false
+        readAlpha = false
         i += 1
       } else if (contents(i) == "Alpha") {
         readAlpha = true
         readFCacheH = false
+        readLabel = false
         readLabel = false
         i += 1
       } else if (contents(i) == "Trace") {
