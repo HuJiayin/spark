@@ -58,20 +58,17 @@ private[mllib] class Tagger extends Serializable {
     val x: ArrayBuffer[Array[String]] = new ArrayBuffer[Array[String]]()
     var i: Int = 0
     var columns: Array[String] = null
+    var sets: Array[String] = null
     var j: Int = 0
+    var inside: Int = 0
     open(featureIndex)
     while (i < lines.length) {
       if (lines(i).charAt(0) != '\0'
         && lines(i).charAt(0) != ' '
         && lines(i).charAt(0) != '\t') {
-        if (lines(i).charAt(0) == '\n') {
-          this.x = x.clone()
-          open(featureIndex)
-          val t = copy(this.asInstanceOf[Tagger])
-          obj.append(t)
-          x.clear()
-        } else {
-          columns = lines(i).split('|')
+        sets = lines(i).split('\t')
+        while (inside < sets.length) {
+          columns = sets(inside).split('|')
           x.append(columns)
           while (j < ysize) {
             if (feature_idx.y(j) == columns(columns.length - 1)) {
@@ -82,8 +79,15 @@ private[mllib] class Tagger extends Serializable {
           }
           j = 0
           result.append(0)
+          inside += 1
         }
+        inside = 0
       }
+      this.x = x.clone()
+      open(featureIndex)
+      val t = copy(this.asInstanceOf[Tagger])
+      obj.append(t)
+      x.clear()
       i += 1
     }
     obj.toArray

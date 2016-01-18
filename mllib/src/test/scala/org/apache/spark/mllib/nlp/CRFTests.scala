@@ -59,26 +59,24 @@ class CRFTests extends SparkFunSuite with Logging with Serializable {
   val template = sc.parallelize(dic)
 
   val file = Array(
-    "He|PRP|B-NP",
-    "reckons|VBZ|B-VP",
-    "the|DT|B-NP",
-    "current|JJ|I-NP",
-    "account|NN|I-NP",
-    "deficit|NN|I-NP",
-    "will|MD|B-VP",
-    "narrow|VB|I-VP",
-    "to|TO|B-PP",
-    "only|RB|B-NP",
-    "#|#|I-NP",
-    "1.8|CD|I-NP",
-    "billion|CD|I-NP",
-    "in|IN|B-PP",
-    "September|NNP|B-NP",
+    "He|PRP|B-NP\t"+
+    "reckons|VBZ|B-VP\t"+
+    "the|DT|B-NP\t"+
+    "current|JJ|I-NP\t"+
+    "account|NN|I-NP\t"+
+    "deficit|NN|I-NP\t"+
+    "will|MD|B-VP\t"+
+    "narrow|VB|I-VP\t"+
+    "to|TO|B-PP\t"+
+    "only|RB|B-NP\t"+
+    "#|#|I-NP\t"+
+    "1.8|CD|I-NP\t"+
+    "billion|CD|I-NP\t"+
+    "in|IN|B-PP\t"+
+    "September|NNP|B-NP\t"+
     ".|.|O",
-    "\n",
-    "He|PRP|B-NP",
-    "reckons|VNZ|B-NP",
-    "\n"
+    "He|PRP|B-NP\t"+
+    "reckons|VNZ|B-VP"
   )
 
   val modelPath = "/home/hujiayin/git/CRFConfig/CRFModel"
@@ -110,24 +108,23 @@ class CRFTests extends SparkFunSuite with Logging with Serializable {
   }
 
   val newFile = Array(
-    "Confidence|NN",
-    "in|IN",
-    "the|DT",
-    "pound|NN",
-    "is|VBZ",
-    "widely|RB",
-    "expected|VBN",
-    "to|TO",
-    "take|VB",
-    "another|DT",
-    "sharp|JJ",
-    "dive|NN",
-    "if|IN",
-    "trade|NN",
-    "figures|NNS",
-    "for|IN",
-    "September|NNP",
-    "\n"  // add"\n" at the end of a paragraph
+    "Confidence|NN\t"+
+    "in|IN\t"+
+    "the|DT\t"+
+    "pound|NN\t"+
+    "is|VBZ\t"+
+    "widely|RB\t"+
+    "expected|VBN\t"+
+    "to|TO\t"+
+    "take|VB\t"+
+    "another|DT\t"+
+    "sharp|JJ\t"+
+    "dive|NN\t"+
+    "if|IN\t"+
+    "trade|NN\t"+
+    "figures|NNS\t"+
+    "for|IN\t"+
+    "September|NNP"
   )
 
   val newSrc = sc.parallelize(newFile).cache()

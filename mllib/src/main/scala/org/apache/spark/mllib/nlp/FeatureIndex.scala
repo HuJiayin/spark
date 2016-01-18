@@ -92,18 +92,25 @@ private[mllib] class FeatureIndex extends Serializable {
     val lines: Array[String] = line.toLocalIterator.toArray
     var lineHead = lines(0).charAt(0)
     var tag: Array[String] = null
+    var sets: Array[String] = null
     var i: Int = 0
     var max: Int = 0
     var j: Int = 1
+    var inside: Int = 0
     while (i < lines.length) {
       lineHead = lines(i).charAt(0)
       if (lineHead != '\0' && lineHead != ' '
         && lineHead != '\t' && lineHead != '\n') {
-        tag = lines(i).split('|')
-        if (tag.length > max) {
-          max = tag.length
+        sets = lines(i).split('\t')
+        while (inside < sets.length) {
+          tag = sets(inside).split('|')
+          if (tag.length > max) {
+            max = tag.length
+          }
+          y.append(tag(tag.length - 1))
+          inside += 1
         }
-        y.append(tag(tag.length - 1))
+        inside = 0
       }
       i += 1
     }
