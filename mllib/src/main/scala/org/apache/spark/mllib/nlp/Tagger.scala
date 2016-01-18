@@ -16,11 +16,12 @@
  */
 package org.apache.spark.mllib.nlp
 
+import org.apache.spark.rdd.RDD
+
 import scala.collection.mutable.ArrayBuffer
 
 private[mllib] class Tagger extends Serializable {
-  var mode: Int = 2
-  // LEARN
+  var mode: Int = 2 // mode=1 => verify mode=2 => Learn
   var vlevel: Int = 0
   var nbest: Int = 0
   var ysize: Int = 0
@@ -34,7 +35,8 @@ private[mllib] class Tagger extends Serializable {
   var penalty: ArrayBuffer[ArrayBuffer[Double]] = new ArrayBuffer[ArrayBuffer[Double]]()
   var answer: ArrayBuffer[Int] = new ArrayBuffer[Int]()
   var result: ArrayBuffer[Int] = new ArrayBuffer[Int]()
-  val MINUS_LOG_EPSILON = 50
+  var MINUS_LOG_EPSILON = 50
+  var oldBestCost: Double = 0.0
 
   /**
    * Get the feature index
@@ -49,29 +51,67 @@ private[mllib] class Tagger extends Serializable {
    * Each feature is a string in the RDD. The feature should be correspondent
    * with template file. User needs prepare the relationship beforehand.
    */
-  def read(lines: Array[String]): Tagger = {
+  def read(line: RDD[String],
+           featureIndex: FeatureIndex): Array[Tagger] = {
+    val lines: Array[String] = line.toLocalIterator.toArray
+    val obj: ArrayBuffer[Tagger] = new ArrayBuffer[Tagger]()
+    val x: ArrayBuffer[Array[String]] = new ArrayBuffer[Array[String]]()
     var i: Int = 0
     var columns: Array[String] = null
+    var sets: Array[String] = null
     var j: Int = 0
+    var inside: Int = 0
+    open(featureIndex)
     while (i < lines.length) {
       if (lines(i).charAt(0) != '\0'
         && lines(i).charAt(0) != ' '
         && lines(i).charAt(0) != '\t') {
-        columns = lines(i).split('|')
-        x.append(columns)
-        while (j < ysize) {
-          if (feature_idx.y(j) == columns(columns.length - 1)) {
-            answer.append(j)
-            j = ysize // break
+        sets = lines(i).split('\t')
+        while (inside < sets.length) {
+          columns = sets(inside).split('|')
+          x.append(columns)
+          while (j < ysize) {
+            if (feature_idx.y(j) == columns(columns.length - 1)) {
+              answer.append(j)
+              j = ysize // break
+            }
+            j += 1
           }
-          j += 1
+          j = 0
+          result.append(0)
+          inside += 1
         }
-        j = 0
-        result.append(0)
+        inside = 0
       }
+      this.x = x.clone()
+      open(featureIndex)
+      val t = copy(this.asInstanceOf[Tagger])
+      obj.append(t)
+      x.clear()
       i += 1
     }
-    this
+    obj.toArray
+  }
+
+  def copy(t: Tagger): Tagger = {
+    val n: Tagger = new Tagger()
+    n.x = t.x
+    n.Z = t.Z
+    n.answer = t.answer
+    n.cost = t.cost
+    n.feature_id = t.feature_id
+    n.feature_idx = t.feature_idx
+    n.MINUS_LOG_EPSILON = t.MINUS_LOG_EPSILON
+    n.mode = t.mode
+    n.nbest = t.nbest
+    n.node = t.node
+    n.oldBestCost = t.oldBestCost
+    n.penalty = t.penalty
+    n.result = t.result
+    n.thread_id = t.thread_id
+    n.vlevel = t.vlevel
+    n.ysize = t.ysize
+    n
   }
 
   def setFeatureId(id: Int): Unit = {
@@ -206,11 +246,22 @@ private[mllib] class Tagger extends Serializable {
       j += 1
     }
     nd = best
-    while (nd != null) {
-      result.update(nd.x, nd.y)
-      nd = nd.prev
+    if (mode == 1) {
+      if (math.abs(oldBestCost) >= math.abs(cost)) {
+        while (nd != null) {
+          result.update(nd.x, nd.y)
+          nd = nd.prev
+        }
+        cost = -node(x.length - 1)(result(x.length - 1)).bestCost
+        oldBestCost = cost
+      }
+    } else {
+      while (nd != null) {
+        result.update(nd.x, nd.y)
+        nd = nd.prev
+      }
+      cost = -node(x.length - 1)(result(x.length - 1)).bestCost
     }
-    cost = -node(x.length - 1)(result(x.length - 1)).bestCost
   }
 
   def gradient(expected: ArrayBuffer[Double]): Double = {

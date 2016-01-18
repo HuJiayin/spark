@@ -31,7 +31,7 @@ class CRFTests extends SparkFunSuite with Logging with Serializable {
     .setMaster("local[2]")
     .setAppName("MLlibUnitTest")
   @transient var sc: SparkContext = new SparkContext(conf)
-  val dic = Array(Array(
+  val dic = Array(
     "gram",
     "U00:%x[-2,0]",
     "U01:%x[-1,0]",
@@ -53,84 +53,97 @@ class CRFTests extends SparkFunSuite with Logging with Serializable {
     "U21:%x[-1,1]/%x[0,1]/%x[1,1]",
     "U22:%x[0,1]/%x[1,1]/%x[2,1]",
     "# Bigram",
-    "B")
+    "B"
   )
 
   val template = sc.parallelize(dic)
 
-  val file = Array(Array(
-    "He|PRP|B-NP",
-    "reckons|VBZ|B-VP",
-    "the|DT|B-NP",
-    "current|JJ|I-NP",
-    "account|NN|I-NP",
-    "deficit|NN|I-NP",
-    "will|MD|B-VP",
-    "narrow|VB|I-VP",
-    "to|TO|B-PP",
-    "only|RB|B-NP",
-    "#|#|I-NP",
-    "1.8|CD|I-NP",
-    "billion|CD|I-NP",
-    "in|IN|B-PP",
-    "September|NNP|B-NP",
-    ".|.|O"
-  ))
+  val file = Array(
+    "He|PRP|B-NP\t"+
+    "reckons|VBZ|B-VP\t"+
+    "the|DT|B-NP\t"+
+    "current|JJ|I-NP\t"+
+    "account|NN|I-NP\t"+
+    "deficit|NN|I-NP\t"+
+    "will|MD|B-VP\t"+
+    "narrow|VB|I-VP\t"+
+    "to|TO|B-PP\t"+
+    "only|RB|B-NP\t"+
+    "#|#|I-NP\t"+
+    "1.8|CD|I-NP\t"+
+    "billion|CD|I-NP\t"+
+    "in|IN|B-PP\t"+
+    "September|NNP|B-NP\t"+
+    ".|.|O",
+    "He|PRP|B-NP\t"+
+    "reckons|VNZ|B-VP"
+  )
 
   val modelPath = "/home/hujiayin/git/CRFConfig/CRFModel"
   val resultPath = "/home/hujiayin/git/CRFConfig/CRFResult"
   val src = sc.parallelize(file).cache()
-  val CRFModel = CRF.runCRF(template, src)
+  val CRFModel = CRF.runCRF(template, src, sc)
   CRFModel.save(sc,modelPath)
-  val modelRDD = sc.parallelize(CRFModel.load(sc,modelPath).CRFSeries)
-  val result = CRF.verifyCRF(src, modelRDD)
+  val modelRDD = sc.parallelize(CRFModel.load(sc,modelPath).CRFSeries(0))
+  val result = CRF.verifyCRF(src, modelRDD, sc)
   result.save(sc,resultPath)
   var idx: Int = 0
+  var i: Int = 0
   var temp: String = ""
   println("Word|WordCategory|Label|PredictiveLabel")
   println("---------------------------------------")
-  while(idx < result.CRFSeries(0).length) {
-    temp += result.CRFSeries(0)(idx)
-    if((idx + 1) % 4 == 0) {
-      // scalastyle:off println
-      println(temp)
-      // scalastyle:on println
-      temp = ""
+  while(idx < result.CRFSeries.length) {
+    while(i < result.CRFSeries(idx).length) {
+      temp += result.CRFSeries(idx)(i)
+      if ((i + 1) % 4 == 0) {
+        // scalastyle:off println
+        println(temp)
+        // scalastyle:on println
+        temp = ""
+      }
+      i += 1
     }
+    i = 0
     idx += 1
   }
 
-  val newFile = Array(Array(
-    "Confidence|NN",
-    "in|IN",
-    "the|DT",
-    "pound|NN",
-    "is|VBZ",
-    "widely|RB",
-    "expected|VBN",
-    "to|TO",
-    "take|VB",
-    "another|DT",
-    "sharp|JJ",
-    "dive|NN",
-    "if|IN",
-    "trade|NN",
-    "figures|NNS",
-    "for|IN",
+  val newFile = Array(
+    "Confidence|NN\t"+
+    "in|IN\t"+
+    "the|DT\t"+
+    "pound|NN\t"+
+    "is|VBZ\t"+
+    "widely|RB\t"+
+    "expected|VBN\t"+
+    "to|TO\t"+
+    "take|VB\t"+
+    "another|DT\t"+
+    "sharp|JJ\t"+
+    "dive|NN\t"+
+    "if|IN\t"+
+    "trade|NN\t"+
+    "figures|NNS\t"+
+    "for|IN\t"+
     "September|NNP"
-  ))
+  )
+
   val newSrc = sc.parallelize(newFile).cache()
-  val newResult = CRF.verifyCRF(newSrc, modelRDD)
+  val newResult = CRF.verifyCRF(newSrc, modelRDD, sc)
   idx = 0
+  i = 0
   temp = ""
-  while(idx < newResult.CRFSeries(0).length) {
-    temp += newResult.CRFSeries(0)(idx)
-    if((idx + 1) % 3 == 0) {
-      // scalastyle:off println
-      println(temp)
-      // scalastyle:on println
-      temp = ""
+  while(idx < newResult.CRFSeries.length) {
+    while(i < newResult.CRFSeries(idx).length) {
+      temp += newResult.CRFSeries(idx)(i)
+      if ((i + 1) % 3 == 0) {
+        // scalastyle:off println
+        println(temp)
+        // scalastyle:on println
+        temp = ""
+      }
+      i += 1
     }
+    i = 0
     idx += 1
   }
 

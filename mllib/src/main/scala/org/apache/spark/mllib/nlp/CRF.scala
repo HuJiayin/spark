@@ -31,57 +31,71 @@ private[mllib] class CRF extends Serializable{
   private val threadNum: Int = Runtime.getRuntime.availableProcessors()
   private val threadPool: Array[CRFThread] = new Array[CRFThread](threadNum)
   private var featureIdx: FeatureIndex = new FeatureIndex()
+  @transient var sc: SparkContext = _
 
 
   /**
    * Internal method to verify the CRF model
    * @param test the same source in the CRFLearn
-   * @param model the output from CRFLearn
+   * @param models the output from CRFLearn
    * @return the source with predictive labels
    */
-  def verify(test: Array[String],
-             model: Array[String]): Array[String] = {
-    var tagger: Tagger = new Tagger()
-    // featureIdx = featureIdx.openTagSet(test)
-    tagger = tagger.read(test)
-    featureIdx = featureIdx.openFromArray(model)
-    tagger.open(featureIdx)
-    tagger.parse()
-    tagger.createOutput()
+  def verify(test: RDD[String],
+             models: RDD[String],
+             sc: SparkContext): RDD[Array[String]] = {
+    val tagger: Tagger = new Tagger()
+    featureIdx = featureIdx.openFromArray(models)
+    val taggerList: Array[Tagger] = tagger.read(test, featureIdx)
+    var i: Int = 0
+    val taggerX: ArrayBuffer[Array[String]] = new ArrayBuffer[Array[String]]
+    while( i < taggerList.length) {
+      tagger.mode = 1
+      taggerList(i).parse()
+      taggerX.append(taggerList(i).createOutput())
+      i += 1
+    }
+    val modelRdd = sc.parallelize(taggerX)
+    modelRdd
   }
 
   /**
    * Internal method to train the CRF model
-   * @param template the template to train the model
-   * @param train the source for the training
+   * @param templates the template to train the model
+   * @param trains the source for the training
    * @return the model of the source
    */
-  def learn(template: Array[String],
-            train: Array[String]): Array[String] = {
-    var tagger: Tagger = new Tagger()
-    var taggerList: ArrayBuffer[Tagger] = new ArrayBuffer[Tagger]()
+  def learn(templates: RDD[String],
+            trains: RDD[String],
+            sc: SparkContext): RDD[String] = {
+    val tagger: Tagger = new Tagger()
+    val template: Array[String] = templates.toLocalIterator.toArray
     featureIdx.openTemplate(template)
-    featureIdx = featureIdx.openTagSet(train)
-    tagger.open(featureIdx)
-    tagger = tagger.read(train)
-    featureIdx.buildFeatures(tagger)
-    taggerList += tagger
-    tagger = null
-    featureIdx.shrink(freq)
-    featureIdx.initAlpha(featureIdx.maxid)
-    runCRF(taggerList, featureIdx, featureIdx.alpha)
-    featureIdx.saveModel
+    featureIdx = featureIdx.openTagSet(trains)
+    val taggerList: Array[Tagger] = tagger.read(trains, featureIdx)
+    var i: Int = 0
+    while( i < taggerList.length ) {
+      taggerList(i).mode = 2
+      featureIdx.buildFeatures(taggerList(i))
+      featureIdx.shrink(freq)
+      featureIdx.initAlpha(featureIdx.maxid)
+      i += 1
+    }
+    val taggerListRdd = sc.parallelize(taggerList).cache()
+    var alphaRdd = sc.parallelize(featureIdx.alpha)
+    alphaRdd = runCRF(taggerListRdd, featureIdx, alphaRdd, sc)
+    val modelRdd = sc.parallelize(featureIdx.saveModel(false, alphaRdd))
+    modelRdd
   }
 
   /**
    * Parse segments in the unit sentences or paragraphs
-   * @param tagger the tagger in the template
+   * @param taggerRdd the tagger in the template
    * @param featureIndex the index of the feature
-   * @param alpha the model
+   * @param alphaRdd the model
    */
 
-  def runCRF(tagger: ArrayBuffer[Tagger], featureIndex: FeatureIndex,
-             alpha: ArrayBuffer[Double]): Unit = {
+  def runCRF(taggerRdd: RDD[Tagger], featureIndex: FeatureIndex,
+             alphaRdd: RDD[Double], sc: SparkContext): RDD[Double] = {
     var diff: Double = 0.0
     var old_obj: Double = 1e37
     var converge: Int = 0
@@ -90,6 +104,14 @@ private[mllib] class CRF extends Serializable{
     val opt = new Optimizer()
     var i: Int = 0
     var k: Int = 0
+
+    val tag: Array[Tagger] = taggerRdd.toLocalIterator.toArray
+    val tagger: ArrayBuffer[Tagger] = new ArrayBuffer[Tagger]()
+    val alp: Array[Double] = alphaRdd.toLocalIterator.toArray
+    val alpha: ArrayBuffer[Double] = new ArrayBuffer[Double]()
+
+    alpha.appendAll(alp)
+    tagger.appendAll(tag)
 
     while (i < tagger.length) {
       all += tagger(i).x.size
@@ -104,7 +126,15 @@ private[mllib] class CRF extends Serializable{
         threadPool(i).size = tagger.size
         threadPool(i).x = tagger
         threadPool(i).start()
+        i += 1
+      }
+      i = 0
+      while (i < threadNum) {
         threadPool(i).join()
+        i += 1
+      }
+      i= 0
+      while (i < threadNum) {
         if (i > 0) {
           threadPool(0).obj += threadPool(i).obj
           threadPool(0).err += threadPool(i).err
@@ -146,6 +176,7 @@ private[mllib] class CRF extends Serializable{
       opt.optimizer(featureIndex.maxid, alpha, threadPool(0).obj, threadPool(0).expected, C)
       itr += 1
     }
+    sc.parallelize(alpha)
   }
 
   /**
@@ -181,7 +212,7 @@ private[mllib] class CRF extends Serializable{
         if (err != 0) {
           zeroOne += 1
         }
-        idx = idx + threadNum
+        idx = idx + 1
       }
     }
   }
@@ -189,8 +220,6 @@ private[mllib] class CRF extends Serializable{
 
 @DeveloperApi
 object CRF {
-  @transient var sc: SparkContext = _
-
   /**
    * Train CRF Model
    * Feature file format
@@ -200,22 +229,29 @@ object CRF {
    * @param features Source files for training the model
    * @return Model of a unit
    */
-  def runCRF(templates: RDD[Array[String]],
-             features: RDD[Array[String]]): CRFModel = {
-    val template: Array[Array[String]] = templates.toLocalIterator.toArray
+  def runCRF(templates: RDD[String],
+             features: RDD[String],
+             sc: SparkContext): CRFModel = {
+
+    val crf = new CRF()
+    val result: Array[String] = crf.learn(templates, features, sc)
+      .toLocalIterator.toArray
+    val finalArray: ArrayBuffer[Array[String]] = new ArrayBuffer[Array[String]]()
+    finalArray.append(result)
+    /* val template: Array[Array[String]] = templates.toLocalIterator.toArray
     sc = features.sparkContext
     val finalArray = features.flatMap { iter =>
       val output: ArrayBuffer[Array[String]] = new ArrayBuffer[Array[String]]()
       var i: Int = 0
       while (i < template.length) {
         val crf = new CRF()
-        val model: Array[String] = crf.learn(template(i), iter)
+        val model: Array[String] = crf.learn(template, iter)
         output.append(model)
         i += 1
       }
       output
-    }.collect()
-    new CRFModel(finalArray)
+    }.collect()*/
+    new CRFModel(finalArray.toArray)
   }
 
   /**
@@ -227,28 +263,27 @@ object CRF {
    * @param models Model files after call the CRF learn
    * @return Source files with the predictive labels
    */
-  def verifyCRF(tests: RDD[Array[String]],
-                models: RDD[Array[String]]): CRFModel = {
-    val test: Array[Array[String]] = tests.toLocalIterator.toArray
-    val model: Array[Array[String]] = models.toLocalIterator.toArray
-    sc = tests.sparkContext
-    val finalArray = test.indices.map(idx => {
-      val crf = new CRF()
-      val result: Array[String] = crf.verify(test(idx), model(idx))
-      result
-    }).toArray
-    new CRFModel(finalArray)
-  }
-
-  /**
-   * Get spark context
-   * @return the current spark context
-   */
-  def getSparkContext: SparkContext = {
-    if (sc != null) {
-      sc
-    } else {
-      null
-    }
+  def verifyCRF(tests: RDD[String],
+                models: RDD[String],
+                sc: SparkContext ): CRFModel = {
+    // val test: Array[Array[String]] = tests.toLocalIterator.toArray
+    // val model: Array[Array[String]] = models.toLocalIterator.toArray
+    // sc = tests.sparkContext
+    // val r: ArrayBuffer[String] = new ArrayBuffer[String]()
+    // val finalArray = test.indices.map(idx => {
+    //  val crf = new CRF()
+      // var i: Int = 0
+      // val result: Array[String] = crf.verify(test(idx), model)
+      // while(i<model.length) {
+        // result = crf.verify(test(idx), model(i))
+        // i += 1
+        // r.appendAll(result)
+      // }
+      // r.toArray
+      // result
+    // }).toArray
+    val crf = new CRF()
+    val result: Array[Array[String]] = crf.verify(tests, models, sc).toLocalIterator.toArray
+    new CRFModel(result)
   }
 }

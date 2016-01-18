@@ -25,6 +25,7 @@ import org.apache.spark.sql.{Row, DataFrame}
 import scala.collection.mutable.ArrayBuffer
 
 class ConditionalRandomField {
+ /*
   def train(template: DataFrame,
             sentences: DataFrame,
             sc: SparkContext): CRFModel = {
@@ -37,6 +38,7 @@ class ConditionalRandomField {
       t.append(row.toString())
       tArr.append(t.toArray)
     }
+
     val tRdd = sc.parallelize(tArr)
 
     sentences.foreach{row =>
@@ -58,18 +60,18 @@ class ConditionalRandomField {
     val result = CRF.verifyCRF(src, md)
     result
   }
-
-  def trainRdd(template: RDD[Array[String]],
-               sentences: RDD[Array[String]],
+*/
+  def trainRdd(template: RDD[String],
+               sentences: RDD[String],
                sc: SparkContext ): CRFModel = {
-    val model = CRF.runCRF(template, sentences)
+    val model = CRF.runCRF(template, sentences, sc)
     model
   }
 
-  def verifyRdd(src: RDD[Array[String]],
-                md: RDD[Array[String]],
+  def verifyRdd(src: RDD[String],
+                md: RDD[String],
                 sc: SparkContext ): CRFModel = {
-    val result = CRF.verifyCRF(src, md)
+    val result = CRF.verifyCRF(src, md, sc)
     result
   }
 
