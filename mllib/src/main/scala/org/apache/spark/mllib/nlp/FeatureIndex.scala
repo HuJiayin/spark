@@ -128,6 +128,7 @@ private[mllib] class FeatureIndex extends Serializable {
       i += 1
       j = i + 1
     }
+    y = y.sortWith(_<_)
     xsize = max - 1
     this
   }
@@ -138,6 +139,7 @@ private[mllib] class FeatureIndex extends Serializable {
       templs += unigram_templs(i)
       i += 1
     }
+    i = 0
     while (i < bigram_templs.length) {
       templs += bigram_templs(i)
       i += 1

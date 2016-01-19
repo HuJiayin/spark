@@ -174,6 +174,9 @@ private[mllib] class CRF extends Serializable{
         itr = maxiter + 1 // break
       }
       opt.optimizer(featureIndex.maxid, alpha, threadPool(0).obj, threadPool(0).expected, C)
+      // alpha = rtnVal.x
+      // threadPool(0).obj = rtnVal.f
+      // threadPool(0).expected = rtnVal.g
       itr += 1
     }
     sc.parallelize(alpha)
@@ -208,6 +211,7 @@ private[mllib] class CRF extends Serializable{
       initExpected()
       while (idx >= start_i && idx < size) {
         obj += x(idx).gradient(expected)
+        // expected = x(idx).getExpected
         err += x(idx).eval()
         if (err != 0) {
           zeroOne += 1

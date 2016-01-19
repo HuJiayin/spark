@@ -37,6 +37,7 @@ private[mllib] class Tagger extends Serializable {
   var result: ArrayBuffer[Int] = new ArrayBuffer[Int]()
   var MINUS_LOG_EPSILON = 50
   var oldBestCost: Double = 0.0
+  var expect: ArrayBuffer[Double] = new ArrayBuffer[Double]()
 
   /**
    * Get the feature index
@@ -61,6 +62,9 @@ private[mllib] class Tagger extends Serializable {
     var sets: Array[String] = null
     var j: Int = 0
     var inside: Int = 0
+    val answer: ArrayBuffer[Int] = new ArrayBuffer[Int]()
+    val result: ArrayBuffer[Int] = new ArrayBuffer[Int]()
+
     open(featureIndex)
     while (i < lines.length) {
       if (lines(i).charAt(0) != '\0'
@@ -84,10 +88,15 @@ private[mllib] class Tagger extends Serializable {
         inside = 0
       }
       this.x = x.clone()
+      this.answer = answer.clone()
+      this.result = result.clone()
       open(featureIndex)
       val t = copy(this.asInstanceOf[Tagger])
       obj.append(t)
       x.clear()
+      answer.clear()
+      result.clear()
+
       i += 1
     }
     obj.toArray
@@ -321,7 +330,16 @@ private[mllib] class Tagger extends Serializable {
     }
     i = 0
     viterbi()
+    saveExpected(expect)
     Z - s
+  }
+
+  def saveExpected(e: ArrayBuffer[Double]) = {
+    expect = e
+  }
+
+  def getExpected: ArrayBuffer[Double] = {
+    expect
   }
 
   def eval(): Int = {
