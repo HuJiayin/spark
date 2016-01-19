@@ -80,7 +80,7 @@ private[mllib] class Node extends Serializable {
     var i: Int = 0
     featureCache = featureIdx.getFeatureCache()
     while (featureCache(idx) != -1) {
-      expected.update(featureCache(idx) + y, c)
+      expected(featureCache(idx) + y) += c
       idx += 1
     }
     while (i < lpath.length) {

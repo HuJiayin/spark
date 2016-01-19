@@ -63,7 +63,7 @@ private[mllib] class Optimizer {
 
 
   def optimizer(size: Int, x: ArrayBuffer[Double], f: Double,
-            g: ArrayBuffer[Double], C: Float): Unit = {
+            g: ArrayBuffer[Double], C: Float): rtnType = {
     val msize: Int = 5
     var bound: Int = 0
     var ys: Double = 0.0
@@ -76,6 +76,7 @@ private[mllib] class Optimizer {
     val maxfev: Int = 20
     var i: Int = 0
     var persist: Boolean = true
+    var mainLoop: Boolean = true
 
     if (w.isEmpty) {
       iflag = 0
@@ -96,7 +97,7 @@ private[mllib] class Optimizer {
       }
       stp1 = 1.0 / math.sqrt(ddot(size, g, 0, g, 0))
     }
-    while (true) {
+    while (mainLoop) {
       if (iflag == 0) {
         iter += 1
         info = 0
@@ -172,10 +173,12 @@ private[mllib] class Optimizer {
       if (info != -1) {
         infoc = 1
         if (size <= 0 || stp <= 0.0) {
-          return
+          mainLoop = false
         }
         dginit = ddot(size, g, 0, w, ispt)
-        if (dginit >= 0.0) return
+        if (dginit >= 0.0) {
+          mainLoop = false
+        }
         brackt = false
         stage1 = true
         nfev = 0
@@ -234,11 +237,11 @@ private[mllib] class Optimizer {
       // mcsrch
       if (info == -1) {
         iflag = 1
-        return
+        mainLoop = false
       }
       if (info != 1) {
         iflag = -1
-        return
+        mainLoop = false
       }
       npt = point * size
       i = 0
@@ -255,6 +258,7 @@ private[mllib] class Optimizer {
         iflag = 0
       }
     }
+    new rtnType(x,f,g)
   }
 
   def ddot(size: Int, v1: ArrayBuffer[Double], v1start: Int,
@@ -277,5 +281,11 @@ private[mllib] class Optimizer {
       dy(i + dyStart) += da * dx(i + dxStart)
       i += 1
     }
+  }
+}
+
+private[mllib] class rtnType (val x: ArrayBuffer[Double], val f: Double, val g:ArrayBuffer[Double]) {
+  def getObj(): rtnType = {
+    this
   }
 }
