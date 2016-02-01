@@ -38,6 +38,7 @@ private[mllib] class Tagger extends Serializable {
   var MINUS_LOG_EPSILON = 50
   var oldBestCost: Double = 0.0
   var expect: ArrayBuffer[Double] = new ArrayBuffer[Double]()
+  var baseIdx: Int = 0
 
   /**
    * Get the feature index
@@ -273,7 +274,8 @@ private[mllib] class Tagger extends Serializable {
     }
   }
 
-  def gradient(expected: ArrayBuffer[Double]): Double = {
+  def gradient(expected: ArrayBuffer[Double],
+                alpha: ArrayBuffer[Double]): Double = {
     var s: Double = 0.0
     var lNode: Node = null
     var rNode: Node = null
@@ -283,6 +285,8 @@ private[mllib] class Tagger extends Serializable {
     var j: Int = 0
     var row: Int = 0
     var rIdx: Int = 0
+
+    feature_idx.setAlpha(alpha)
 
     if (x.isEmpty) {
       return 0.0
@@ -302,9 +306,11 @@ private[mllib] class Tagger extends Serializable {
     j = 0
     while (row < x.length) {
       idx = node(row)(answer(row)).fvector
-      rIdx = feature_idx.getFeatureCacheIdx(node(row)(answer(row)).fvector)
+      rIdx = feature_idx.getFeatureCacheIdx(node(row)
+        (answer(row)).fvector,node(row)(answer(row)).baseIdx)
       while (feature_idx.featureCache(rIdx) != -1) {
         expected(feature_idx.featureCache(rIdx) + answer(row)) -= 1
+        // expected(node(row)(answer(row)).fvector+ answer(row)) -= 1
         rIdx += 1
       }
       rIdx = 0
@@ -315,9 +321,10 @@ private[mllib] class Tagger extends Serializable {
         lPath = node(row)(answer(row)).lpath(i)
         if (lNode.y == answer(lNode.x)) {
           idx = lPath.fvector
-          rIdx = feature_idx.getFeatureCacheIdx(lPath.fvector)
+          rIdx = feature_idx.getFeatureCacheIdx(lPath.fvector,lPath.baseIdx)
           while (feature_idx.featureCache(rIdx) != -1) {
             expected(feature_idx.featureCache(rIdx) + lNode.y * ysize + rNode.y) -= 1
+            // expected(lPath.fvector + lNode.y * ysize + rNode.y) -= 1
             rIdx += 1
           }
           rIdx = 0

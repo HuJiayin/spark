@@ -45,8 +45,8 @@ private[mllib] class FeatureIndex extends Serializable {
   val featureCacheH: ArrayBuffer[Int] = new ArrayBuffer[Int]()
   @transient var sc: SparkContext = _
 
-  def getFeatureCacheIdx(fVal: Int): Int = {
-    var i: Int = 0
+  def getFeatureCacheIdx(fVal: Int, fBase: Int): Int = {
+    var i: Int = fBase
     while (i < featureCache.size) {
       if (featureCache(i) == fVal) {
         return i
@@ -178,6 +178,7 @@ private[mllib] class FeatureIndex extends Serializable {
     var i: Int = 0
     var j: Int = 0
     var fid = tagger.feature_id
+    val base = tagger.baseIdx
     var nd = new Node
 
     while (cur < tagger.x.size) {
@@ -188,6 +189,7 @@ private[mllib] class FeatureIndex extends Serializable {
         nd.x = cur
         nd.y = i
         nd.fvector = featureCacheH(fid)
+        nd.baseIdx = base
         nodeList.append(nd)
         i += 1
       }
@@ -205,6 +207,7 @@ private[mllib] class FeatureIndex extends Serializable {
           val path: Path = new Path
           path.add(tagger.node(cur - 1)(j), tagger.node(cur)(i))
           path.fvector = featureCacheH(fid)
+          path.baseIdx = base
           i += 1
         }
         i = 0
@@ -223,7 +226,7 @@ private[mllib] class FeatureIndex extends Serializable {
     var id: Int = 0
     var cur: Int = 0
     var it: Int = 0
-    featureCacheH.append(0)
+    // featureCacheH.append(0)
     while (cur < tagger.x.size) {
       while (it < unigram_templs.length) {
         os = applyRule(unigram_templs(it), cur, tagger)
@@ -232,7 +235,6 @@ private[mllib] class FeatureIndex extends Serializable {
         it += 1
       }
       featureCache.append(-1)
-      featureCacheH.append(maxid)
       cur += 1
       it = 0
     }
@@ -246,9 +248,51 @@ private[mllib] class FeatureIndex extends Serializable {
         it += 1
       }
       featureCache.append(-1)
-      featureCacheH.append(maxid)
+      // featureCacheH.append(id)
       cur += 1
       it = 0
+    }
+  }
+
+  def getFeatureIndexHeader(): Int = {
+    var cur: Int = 0
+    var idx: Int = 0
+    cur = 0
+    featureCacheH.append(featureCache.head)
+    while (cur < featureCache.length) {
+      if (featureCache(cur) == -1
+        && cur < featureCache.length - 1) {
+        featureCacheH.append(featureCache(cur + 1))
+      }
+      cur += 1
+    }
+    idx = featureCacheH.length
+    idx
+  }
+
+  def setFeatureIdx(taggerList: Array[Tagger]) = {
+    var idx: Int = 0
+    var i: Int = 0
+    while(idx < featureCacheH.length){
+      if(featureCacheH(idx) == 0
+        && i < taggerList.length){
+        taggerList(i).feature_id = idx
+        i += 1
+      }
+      idx += 1
+    }
+  }
+
+  def setBaseIdx(taggerList: Array[Tagger]) = {
+    var idx: Int = 0
+    var i: Int = 0
+    while(idx < featureCache.length){
+      if(featureCache(idx) == 0 &&
+          i < taggerList.length) {
+        taggerList(i).baseIdx = idx
+        i += 1
+      }
+      idx += 1
     }
   }
 
@@ -256,7 +300,7 @@ private[mllib] class FeatureIndex extends Serializable {
     var n: Int = maxid
     var idx: Int = 0
     var fid: Int = 0
-    if(src == null) {
+    if (src == null) {
       return 0
     }
     if (dic.get(src).isEmpty) {
@@ -270,14 +314,13 @@ private[mllib] class FeatureIndex extends Serializable {
         // Bigram
         maxid += y.size * y.size
       }
-      return n
-    }
-    else {
+      n
+    } else {
       idx = dic.get(src).get._2
       idx += 1
       fid = dic.get(src).get._1
       dic.update(src, (fid, idx))
-      return fid
+      fid
     }
   }
 
@@ -365,13 +408,14 @@ private[mllib] class FeatureIndex extends Serializable {
   def calcCost(n: Node): Node = {
     var c: Float = 0
     var cd: Double = 0.0
-    var idx: Int = getFeatureCacheIdx(n.fvector)
-
+    var idx: Int = getFeatureCacheIdx(n.fvector,n.baseIdx)
+    // printf("n.fvec=%d,n.baseIdx=%d",n.fvector,n.baseIdx)
     n.cost = 0.0
     if (alpha_float.nonEmpty) {
       while (featureCache(idx) != -1 &&
         featureCache(idx) + n.y < alpha_float.length) {
         c += alpha_float(featureCache(idx) + n.y)
+        // c += alpha_float(n.fvector + n.y)
         n.cost = c
         idx += 1
       }
@@ -379,6 +423,7 @@ private[mllib] class FeatureIndex extends Serializable {
       while (featureCache(idx) != -1 &&
         featureCache(idx) + n.y < alpha.length) {
         cd += alpha(featureCache(idx) + n.y)
+        // cd += alpha(n.fvector + n.y)
         n.cost = cd
         idx += 1
       }
@@ -389,21 +434,22 @@ private[mllib] class FeatureIndex extends Serializable {
   def calcCost(p: Path): Path = {
     var c: Float = 0
     var cd: Double = 0.0
-    var idx: Int = getFeatureCacheIdx(p.fvector)
+    var idx: Int = getFeatureCacheIdx(p.fvector, p.baseIdx)
     p.cost = 0.0
     if (alpha_float.nonEmpty) {
       while (featureCache(idx) != -1 && featureCache(idx) +
         p.lnode.y * y.size + p.rnode.y < alpha_float.length) {
-        c += alpha_float(featureCache(idx) +
-          p.lnode.y * y.size + p.rnode.y)
+        c += alpha_float(featureCache(idx) + p.lnode.y * y.size + p.rnode.y)
+        // c += alpha_float(p.fvector + p.lnode.y * y.size + p.rnode.y)
         p.cost = c
         idx += 1
       }
     } else if (alpha.nonEmpty) {
-      while (featureCache(idx) != -1 && featureCache(idx)
-        + p.lnode.y * y.size + p.rnode.y < alpha.length) {
-        cd += alpha(featureCache(idx) +
-          p.lnode.y * y.size + p.rnode.y)
+      while (featureCache(idx) != -1 &&
+        featureCache(idx) + p.lnode.y * y.size
+          + p.rnode.y < alpha.length) {
+        cd += alpha(featureCache(idx) + p.lnode.y * y.size + p.rnode.y)
+        // cd += alpha(p.fvector + p.lnode.y * y.size + p.rnode.y)
         p.cost = cd
         idx += 1
       }

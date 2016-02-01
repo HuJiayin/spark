@@ -31,6 +31,7 @@ private[mllib] class Node extends Serializable {
   var lpath: ArrayBuffer[Path] = new ArrayBuffer[Path]()
   var rpath: ArrayBuffer[Path] = new ArrayBuffer[Path]()
   val MINUS_LOG_EPSILON = 50
+  var baseIdx: Int = 0
   var featureCache: ArrayBuffer[Int] = new ArrayBuffer[Int]()
 
   object Node {
@@ -76,11 +77,12 @@ private[mllib] class Node extends Serializable {
                      featureIdx: FeatureIndex): Unit = {
     val c: Double = math.exp(alpha + beta - cost - Z)
     var pathObj: Path = new Path()
-    var idx: Int = featureIdx.getFeatureCacheIdx(fvector)
+    var idx: Int = featureIdx.getFeatureCacheIdx(fvector, baseIdx)
     var i: Int = 0
     featureCache = featureIdx.getFeatureCache()
     while (featureCache(idx) != -1) {
       expected(featureCache(idx) + y) += c
+      // expected(fvector + y) += c
       idx += 1
     }
     while (i < lpath.length) {

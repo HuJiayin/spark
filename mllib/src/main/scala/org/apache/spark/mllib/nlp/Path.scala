@@ -23,6 +23,7 @@ private[mllib] class Path extends Serializable {
   var lnode: Node = new Node
   var cost: Double = 0.0
   var fvector: Int = 0
+  var baseIdx: Int = 0
   var fIdx: Int = 0
   var path: Path = null
 
@@ -40,10 +41,12 @@ private[mllib] class Path extends Serializable {
                      featureIdx: FeatureIndex): Unit = {
     val c: Double = math.exp(lnode.alpha + cost + rnode.beta - Z)
     var idx: Int = 0
-    idx = featureIdx.getFeatureCacheIdx(fvector)
+    idx = featureIdx.getFeatureCacheIdx(fvector, baseIdx)
 
     while (fCache(idx) != -1) {
+      // printf("idx=%d, lnode.y=%d, size=%d, rnode.y=%d",idx, lnode.y,size,rnode.y)
       expected(fCache(idx) + lnode.y * size + rnode.y) += c
+      // expected(fvector + lnode.y * size + rnode.y) += c
       idx += 1
     }
   }
