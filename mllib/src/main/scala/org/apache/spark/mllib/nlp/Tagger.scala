@@ -256,22 +256,22 @@ private[mllib] class Tagger extends Serializable {
       j += 1
     }
     nd = best
-    if (mode == 1) {
-      if (math.abs(oldBestCost) >= math.abs(cost)) {
+    /* if (mode == 1) {
+      // if (math.abs(oldBestCost) >= math.abs(cost)) {
         while (nd != null) {
           result.update(nd.x, nd.y)
           nd = nd.prev
         }
         cost = -node(x.length - 1)(result(x.length - 1)).bestCost
         oldBestCost = cost
-      }
-    } else {
+      // }
+    } else { */
       while (nd != null) {
         result.update(nd.x, nd.y)
         nd = nd.prev
       }
       cost = -node(x.length - 1)(result(x.length - 1)).bestCost
-    }
+    // }
   }
 
   def gradient(expected: ArrayBuffer[Double],
@@ -383,6 +383,9 @@ private[mllib] class Tagger extends Serializable {
   }
 
   def parse(): Unit = {
+    feature_idx.clearCache()
+    feature_idx.buildFeatures(this)
+    feature_idx.getFeatureIndexHeader()
     buildLattice()
     if (nbest != 0 || vlevel >= 1) {
       forwardBackward()

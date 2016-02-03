@@ -36,6 +36,8 @@ private[mllib] class FeatureIndex extends Serializable {
   var templs: String = new String
   var dic: scala.collection.mutable.Map[String, (Int, Int)] =
     scala.collection.mutable.Map[String, (Int, Int)]()
+  var decoderDic: scala.collection.mutable.Map[String, Int] =
+    scala.collection.mutable.Map[String, Int]()
   val kMaxContextSize: Int = 8
   val BOS = Vector[String]("_B-1", "_B-2", "_B-3", "_B-4",
     "_B-5", "_B-6", "_B-7", "_B-8")
@@ -128,7 +130,7 @@ private[mllib] class FeatureIndex extends Serializable {
       i += 1
       j = i + 1
     }
-    y = y.sortWith(_<_)
+    y = y.sortWith(_ < _)
     xsize = max - 1
     this
   }
@@ -218,6 +220,11 @@ private[mllib] class FeatureIndex extends Serializable {
     }
   }
 
+  def clearCache(): Unit = {
+    featureCache.clear()
+    featureCacheH.clear()
+  }
+
   /**
    * Build feature index
    */
@@ -230,8 +237,14 @@ private[mllib] class FeatureIndex extends Serializable {
     while (cur < tagger.x.size) {
       while (it < unigram_templs.length) {
         os = applyRule(unigram_templs(it), cur, tagger)
-        id = getId(os)
-        featureCache.append(id)
+        if (tagger.mode == 2) {
+          id = getId(os)
+        } else {
+          id = exactMatchSearch(os)
+        }
+        if(id != -1) {
+          featureCache.append(id)
+        }
         it += 1
       }
       featureCache.append(-1)
@@ -243,8 +256,14 @@ private[mllib] class FeatureIndex extends Serializable {
     while (cur < tagger.x.size) {
       while (it < bigram_templs.length) {
         os = applyRule(bigram_templs(it), cur, tagger)
-        id = getId(os)
-        featureCache.append(id)
+        if (tagger.mode == 2) {
+          id = getId(os)
+        } else {
+          id = exactMatchSearch(os)
+        }
+        if(id != -1) {
+          featureCache.append(id)
+        }
         it += 1
       }
       featureCache.append(-1)
@@ -273,9 +292,9 @@ private[mllib] class FeatureIndex extends Serializable {
   def setFeatureIdx(taggerList: Array[Tagger]) = {
     var idx: Int = 0
     var i: Int = 0
-    while(idx < featureCacheH.length){
-      if(featureCacheH(idx) == 0
-        && i < taggerList.length){
+    while (idx < featureCacheH.length) {
+      if (featureCacheH(idx) == 0
+        && i < taggerList.length) {
         taggerList(i).feature_id = idx
         i += 1
       }
@@ -286,9 +305,9 @@ private[mllib] class FeatureIndex extends Serializable {
   def setBaseIdx(taggerList: Array[Tagger]) = {
     var idx: Int = 0
     var i: Int = 0
-    while(idx < featureCache.length){
-      if(featureCache(idx) == 0 &&
-          i < taggerList.length) {
+    while (idx < featureCache.length) {
+      if (featureCache(idx) == 0 &&
+        i < taggerList.length) {
         taggerList(i).baseIdx = idx
         i += 1
       }
@@ -322,6 +341,16 @@ private[mllib] class FeatureIndex extends Serializable {
       dic.update(src, (fid, idx))
       fid
     }
+  }
+
+  def exactMatchSearch(src: String): Int = {
+    var idx: Int = 0
+    if (decoderDic.get(src).isEmpty) {
+      idx = -1
+    } else {
+      idx = decoderDic.get(src).get
+    }
+    idx
   }
 
   def applyRule(src: String, idx: Int, tagger: Tagger): String = {
@@ -408,7 +437,7 @@ private[mllib] class FeatureIndex extends Serializable {
   def calcCost(n: Node): Node = {
     var c: Float = 0
     var cd: Double = 0.0
-    var idx: Int = getFeatureCacheIdx(n.fvector,n.baseIdx)
+    var idx: Int = getFeatureCacheIdx(n.fvector, n.baseIdx)
     // printf("n.fvec=%d,n.baseIdx=%d",n.fvector,n.baseIdx)
     n.cost = 0.0
     if (alpha_float.nonEmpty) {
@@ -508,7 +537,12 @@ private[mllib] class FeatureIndex extends Serializable {
   def saveModel(trace: Boolean, alp: RDD[Double]): Array[String] = {
     val contents: ArrayBuffer[String] = new ArrayBuffer[String]
     val alpha: Array[Double] = alp.toLocalIterator.toArray
+    val keys: ArrayBuffer[String] = new ArrayBuffer[String]()
+    val values: ArrayBuffer[Int] = new ArrayBuffer[Int]()
+    // val fid: ArrayBuffer[Int] = new ArrayBuffer[Int]()
     var i: Int = 0
+
+    /*
     contents.append("FeatureCache")
     while (i < featureCache.size) {
       contents.append(featureCache(i).toString)
@@ -521,8 +555,10 @@ private[mllib] class FeatureIndex extends Serializable {
       i += 1
     }
     i = 0
+    */
+
     contents.append("Labels")
-    while (i < y.size){
+    while (i < y.size) {
       contents.append(y(i))
       i += 1
     }
@@ -532,7 +568,32 @@ private[mllib] class FeatureIndex extends Serializable {
       contents.append(alpha(i).toString)
       i += 1
     }
-    if(trace) {
+    contents.append("Dic")
+    dic.foreach { (pair) => keys.append(pair._1) }
+    dic.foreach { (pair) => values.append(pair._2._1) }
+    // dic.foreach { (pair) => fid.append(pair._2._2) }
+    i = 0
+    while (i < keys.size) {
+      contents.append(keys(i) + "@" + values(i))
+      i += 1
+    }
+    contents.append("Unigram")
+    i = 0
+    while (i < unigram_templs.size) {
+      contents.append(unigram_templs(i))
+      i += 1
+    }
+    contents.append("Bigram")
+    i = 0
+    while (i < bigram_templs.size) {
+      contents.append(bigram_templs(i))
+      i += 1
+    }
+    contents.append("xsize")
+    contents.append(xsize.toString)
+    contents.append("maxid")
+    contents.append(maxid.toString)
+    if (trace) {
       contents.append("Trace")
       contents.appendAll(saveModelTxt)
     }
@@ -546,30 +607,110 @@ private[mllib] class FeatureIndex extends Serializable {
     var readFCacheH: Boolean = false
     var readAlpha: Boolean = false
     var readLabel: Boolean = false
+    var readDic: Boolean = false
+    var readUnigram: Boolean = false
+    var readBigram: Boolean = false
+    var readXsize: Boolean = false
+    var readMaxid: Boolean = false
     while (i < contents.length) {
-      if (contents(i) == "FeatureCacheHeader") {
+      /*if (contents(i) == "FeatureCacheHeader") {
         readFCacheH = true
         readFCache = false
         readAlpha = false
         readLabel = false
+        readDic = false
+        readUnigram = false
+        readBigram = false
+        readXsize = false
+        readMaxid = false
         i += 1
-      } else if (contents(i) == "Labels") {
+      } else */if (contents(i) == "Labels") {
         readLabel = true
         readFCacheH = false
         readFCache = false
         readAlpha = false
+        readDic = false
+        readUnigram = false
+        readBigram = false
+        readXsize = false
+        readMaxid = false
         i += 1
-      } else if (contents(i) == "FeatureCache") {
+      } /*else if (contents(i) == "FeatureCache") {
         readFCache = true
         readFCacheH = false
         readLabel = false
         readAlpha = false
+        readDic = false
+        readUnigram = false
+        readBigram = false
+        readXsize = false
+        readMaxid = false
         i += 1
-      } else if (contents(i) == "Alpha") {
+      } */else if (contents(i) == "Alpha") {
         readAlpha = true
         readFCacheH = false
         readLabel = false
+        readDic = false
+        readFCache = false
+        readUnigram = false
+        readBigram = false
+        readXsize = false
+        readMaxid = false
+        i += 1
+      } else if (contents(i) == "Dic") {
+        readDic = true
+        readAlpha = false
+        readFCacheH = false
         readLabel = false
+        readFCache = false
+        readUnigram = false
+        readBigram = false
+        readXsize = false
+        readMaxid = false
+        i += 1
+      } else if (contents(i) == "Unigram") {
+        readDic = false
+        readAlpha = false
+        readFCacheH = false
+        readLabel = false
+        readFCache = false
+        readUnigram = true
+        readBigram = false
+        readXsize = false
+        readMaxid = false
+        i += 1
+      } else if (contents(i) == "Bigram") {
+        readDic = false
+        readAlpha = false
+        readFCacheH = false
+        readLabel = false
+        readFCache = false
+        readUnigram = false
+        readBigram = true
+        readXsize = false
+        readMaxid = false
+        i += 1
+      } else if (contents(i) == "xsize"){
+        readDic = false
+        readAlpha = false
+        readFCacheH = false
+        readLabel = false
+        readFCache = false
+        readUnigram = false
+        readBigram = false
+        readXsize = true
+        readMaxid = false
+        i += 1
+      } else if (contents(i) == "maxid") {
+        readDic = false
+        readAlpha = false
+        readFCacheH = false
+        readLabel = false
+        readFCache = false
+        readUnigram = false
+        readBigram = false
+        readXsize = false
+        readMaxid = true
         i += 1
       } else if (contents(i) == "Trace") {
         i = contents.length + 1 // break
@@ -577,15 +718,33 @@ private[mllib] class FeatureIndex extends Serializable {
         readFCacheH = false
         readAlpha = false
         readLabel = false
+        readDic = false
+        readUnigram = false
+        readBigram = false
+        readXsize = false
+        readMaxid = false
       }
-      if (readFCache) {
+      /*if (readFCache) {
         featureCache.append(contents(i).toInt)
       } else if (readFCacheH) {
         featureCacheH.append(contents(i).toInt)
-      } else if (readLabel) {
+      } else */if (readLabel) {
         y.append(contents(i))
       } else if (readAlpha) {
         alpha.append(contents(i).toDouble)
+      } else if (readDic) {
+        val temp: Array[String] = contents(i).split("@")
+        val idx: Int = temp(1).toInt
+        // val src: Array[String] = temp(0).split(" ")
+        decoderDic.update(temp(0), idx)
+      } else if (readUnigram) {
+        unigram_templs.append(contents(i))
+      } else if (readBigram) {
+        bigram_templs.append(contents(i))
+      } else if (readXsize) {
+        xsize = contents(i).toInt
+      } else if (readMaxid) {
+        maxid = contents(i).toInt
       }
       i += 1
     }

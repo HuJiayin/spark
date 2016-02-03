@@ -49,7 +49,7 @@ private[mllib] class CRF extends Serializable {
     var i: Int = 0
     val taggerX: ArrayBuffer[Array[String]] = new ArrayBuffer[Array[String]]
     while (i < taggerList.length) {
-      tagger.mode = 1
+      taggerList(i).mode = 1
       taggerList(i).parse()
       taggerX.append(taggerList(i).createOutput())
       i += 1
