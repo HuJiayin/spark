@@ -354,8 +354,9 @@ private[mllib] class Optimizer {
   }
 }
 
-private[mllib] class rtnType(val x: ArrayBuffer[Double], val f: Double, val g: ArrayBuffer[Double]) {
-  def getObj(): rtnType = {
+private[mllib] class rtnType(val x: ArrayBuffer[Double],
+                             val f: Double, val g: ArrayBuffer[Double]) {
+  def getObj: rtnType = {
     this
   }
 }

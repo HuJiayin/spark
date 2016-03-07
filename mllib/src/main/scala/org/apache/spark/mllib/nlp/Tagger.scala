@@ -307,7 +307,7 @@ private[mllib] class Tagger extends Serializable {
     while (row < x.length) {
       idx = node(row)(answer(row)).fvector
       rIdx = feature_idx.getFeatureCacheIdx(node(row)
-        (answer(row)).fvector,node(row)(answer(row)).baseIdx)
+        (answer(row)).fvector , node(row)(answer(row)).baseIdx)
       while (feature_idx.featureCache(rIdx) != -1) {
         expected(feature_idx.featureCache(rIdx) + answer(row)) -= 1
         // expected(node(row)(answer(row)).fvector+ answer(row)) -= 1
@@ -321,7 +321,7 @@ private[mllib] class Tagger extends Serializable {
         lPath = node(row)(answer(row)).lpath(i)
         if (lNode.y == answer(lNode.x)) {
           idx = lPath.fvector
-          rIdx = feature_idx.getFeatureCacheIdx(lPath.fvector,lPath.baseIdx)
+          rIdx = feature_idx.getFeatureCacheIdx(lPath.fvector , lPath.baseIdx)
           while (feature_idx.featureCache(rIdx) != -1) {
             expected(feature_idx.featureCache(rIdx) + lNode.y * ysize + rNode.y) -= 1
             // expected(lPath.fvector + lNode.y * ysize + rNode.y) -= 1
@@ -341,7 +341,7 @@ private[mllib] class Tagger extends Serializable {
     Z - s
   }
 
-  def saveExpected(e: ArrayBuffer[Double]) = {
+  def saveExpected(e: ArrayBuffer[Double]): Unit = {
     expect = e
   }
 
@@ -385,7 +385,7 @@ private[mllib] class Tagger extends Serializable {
   def parse(): Unit = {
     feature_idx.clearCache()
     feature_idx.buildFeatures(this)
-    feature_idx.getFeatureIndexHeader()
+    feature_idx.getFeatureIndexHeader
     buildLattice()
     if (nbest != 0 || vlevel >= 1) {
       forwardBackward()

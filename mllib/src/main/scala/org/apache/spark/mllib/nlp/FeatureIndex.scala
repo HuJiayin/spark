@@ -273,7 +273,7 @@ private[mllib] class FeatureIndex extends Serializable {
     }
   }
 
-  def getFeatureIndexHeader(): Int = {
+  def getFeatureIndexHeader: Int = {
     var cur: Int = 0
     var idx: Int = 0
     cur = 0
@@ -289,7 +289,7 @@ private[mllib] class FeatureIndex extends Serializable {
     idx
   }
 
-  def setFeatureIdx(taggerList: Array[Tagger]) = {
+  def setFeatureIdx(taggerList: Array[Tagger]): Unit = {
     var idx: Int = 0
     var i: Int = 0
     while (idx < featureCacheH.length) {
@@ -302,7 +302,7 @@ private[mllib] class FeatureIndex extends Serializable {
     }
   }
 
-  def setBaseIdx(taggerList: Array[Tagger]) = {
+  def setBaseIdx(taggerList: Array[Tagger]): Unit = {
     var idx: Int = 0
     var i: Int = 0
     while (idx < featureCache.length) {
@@ -613,7 +613,7 @@ private[mllib] class FeatureIndex extends Serializable {
     var readXsize: Boolean = false
     var readMaxid: Boolean = false
     while (i < contents.length) {
-      /*if (contents(i) == "FeatureCacheHeader") {
+      /* if (contents(i) == "FeatureCacheHeader") {
         readFCacheH = true
         readFCache = false
         readAlpha = false
@@ -635,7 +635,7 @@ private[mllib] class FeatureIndex extends Serializable {
         readXsize = false
         readMaxid = false
         i += 1
-      } /*else if (contents(i) == "FeatureCache") {
+      } /* else if (contents(i) == "FeatureCache") {
         readFCache = true
         readFCacheH = false
         readLabel = false
@@ -724,7 +724,7 @@ private[mllib] class FeatureIndex extends Serializable {
         readXsize = false
         readMaxid = false
       }
-      /*if (readFCache) {
+      /* if (readFCache) {
         featureCache.append(contents(i).toInt)
       } else if (readFCacheH) {
         featureCacheH.append(contents(i).toInt)

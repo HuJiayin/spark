@@ -100,6 +100,7 @@ object ConditionalRandomFieldExample {
       idx = 0
       i += 1
     }
+
     sc.stop()
   }
 

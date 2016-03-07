@@ -81,7 +81,7 @@ private[mllib] class CRF extends Serializable {
       featureIdx.initAlpha(featureIdx.maxid)
       i += 1
     }
-    featureIdx.getFeatureIndexHeader()
+    featureIdx.getFeatureIndexHeader
     featureIdx.setFeatureIdx(taggerList)
     featureIdx.setBaseIdx(taggerList)
     val taggerListRdd = sc.parallelize(taggerList).cache()
@@ -138,9 +138,11 @@ private[mllib] class CRF extends Serializable {
       err = 0
       while (idx >= 0 && idx < tagger.size) {
         // printf("Round=%d\n", idx)
-        // printf("Before=====expected[0]=%2.5f, expected[1]=%2.5f, expected[125]=%2.5f\n", expected.head, expected(1), expected(125))
+        // printf("Before=====expected[0]=%2.5f, expected[1]=%2.5f,
+        // expected[125]=%2.5f\n", expected.head, expected(1), expected(125))
         obj += tagger(idx).gradient(expected, alpha)
-        // printf("After=====expected[0]=%2.5f, expected[1]=%2.5f, expected[125]=%2.5f\n", expected.head, expected(1), expected(125))
+        // printf("After=====expected[0]=%2.5f, expected[1]=%2.5f,
+        // expected[125]=%2.5f\n", expected.head, expected(1), expected(125))
         err += tagger(idx).eval()
         if (err != 0) {
           zeroOne += 1
@@ -160,17 +162,17 @@ private[mllib] class CRF extends Serializable {
         diff = math.abs((old_obj - obj) / old_obj)
       }
 
-      /* printf("BeforeLBFGS===alpha(0)=%2.5f, expected(0)=%2.5f,expected(1)=%2.5f," +
-        "expected(125)=%2.5f, obj=%2.5f\n", alpha.head,
-        expected.head, expected(1), expected(125), obj)*/
+      // printf("BeforeLBFGS===alpha(0)=%2.5f, expected(0)=%2.5f,expected(1)=%2.5f," +
+      // "expected(125)=%2.5f, obj=%2.5f\n", alpha.head,
+      // expected.head, expected(1), expected(125), obj)
 
       opt.optimizer(featureIndex.maxid, alpha, obj, expected, C)
-      /*printf("iter=%d, terr=%2.5f, serr=%2.5f, act=%d, obj=%2.5f,diff=%2.5f\n",
-        itr, 1.0 * err / all, 1.0 * zeroOne / tagger.size, featureIndex.maxid, obj, diff)*/
+      // printf("iter=%d, terr=%2.5f, serr=%2.5f, act=%d, obj=%2.5f,diff=%2.5f\n",
+      // itr, 1.0 * err / all, 1.0 * zeroOne / tagger.size, featureIndex.maxid, obj, diff)
 
-      /*printf("AfterLBFGS===alpha(0)=%2.5f, expected(0)=%2.5f,expected(1)=%2.5f," +
-        "expected(125)=%2.5f, obj=%2.5f\n", alpha.head,
-        expected.head, expected(1), expected(125), obj)*/
+      // printf("AfterLBFGS===alpha(0)=%2.5f, expected(0)=%2.5f,expected(1)=%2.5f," +
+      // "expected(125)=%2.5f, obj=%2.5f\n", alpha.head,
+      // expected.head, expected(1), expected(125), obj)
 
       old_obj = obj
 
@@ -280,15 +282,19 @@ private[mllib] class CRF extends Serializable {
       if (diff == 0) {
         itr = maxiter + 1 // break
       }
-      /*printf("BeforeLBFGS===alpha(0)=%2.5f,threadPool(0)." +
-        "expected(0)=%2.5f,threadPool(0).expected(1)=%2.5f," +
-        "threadPool(0).expected(125)=%2.5f, threadPool(0).obj=%2.5f\n", threadPool(0).alp(0),
-        threadPool(0).expected(0), threadPool(0).expected(1), threadPool(0).expected(125), threadPool(0).obj)*/
-      opt.optimizer(featureIndex.maxid, threadPool(0).alp, threadPool(0).obj, threadPool(0).expected, C)
-      /*printf("AfterLBFGS===alpha(0)=%2.5f,threadPool(0)." +
-        "expected(0)=%2.5f,threadPool(0).expected(1)=%2.5f,threadPool(0)." +
-        "expected(125)=%2.5f, threadPool(0).obj=%2.5f\n", threadPool(0).alp(0),
-        threadPool(0).expected(0), threadPool(0).expected(1), threadPool(0).expected(125), threadPool(0).obj)*/
+      // printf("BeforeLBFGS===alpha(0)=%2.5f,threadPool(0)." +
+      // "expected(0)=%2.5f,threadPool(0).expected(1)=%2.5f," +
+      // "threadPool(0).expected(125)=%2.5f, threadPool(0).obj=%2.5f\n",
+      // threadPool(0).alp(0),
+      // threadPool(0).expected(0), threadPool(0).expected(1),
+      // threadPool(0).expected(125), threadPool(0).obj)*/
+      opt.optimizer(featureIndex.maxid, threadPool(0).alp,
+        threadPool(0).obj, threadPool(0).expected, C)
+      // printf("AfterLBFGS===alpha(0)=%2.5f,threadPool(0)." +
+      // "expected(0)=%2.5f,threadPool(0).expected(1)=%2.5f,threadPool(0)." +
+      // "expected(125)=%2.5f, threadPool(0).obj=%2.5f\n", threadPool(0).alp(0),
+      // threadPool(0).expected(0), threadPool(0).expected(1),
+      // threadPool(0).expected(125), threadPool(0).obj)*/
       // threadPool(0).alp.appendAll(alpha)
       // featureIdx.setAlpha(alpha)
       // alpha = rtnVal.x
@@ -324,13 +330,14 @@ private[mllib] class CRF extends Serializable {
     /**
      * Train CRF model and calculate the expectations
      */
-    override def run(): Unit = {
+    override def run: Unit = {
       var idx: Int = 0
       initExpected()
       while (idx >= start_i && idx < size) {
         // printf("Round=%d\n", idx)
         obj += x(idx).gradient(expected, threadPool(0).alp)
-        // printf("expected[0]=%2.5f, expected[1]=%2.5f, expected[125]=%2.5f\n", expected(0), expected(1), expected(125))
+        // printf("expected[0]=%2.5f, expected[1]=%2.5f,
+        // expected[125]=%2.5f\n", expected(0), expected(1), expected(125))
         err += x(idx).eval()
         if (err != 0) {
           zeroOne += 1
@@ -362,19 +369,6 @@ object CRF {
       .toLocalIterator.toArray
     val finalArray: ArrayBuffer[Array[String]] = new ArrayBuffer[Array[String]]()
     finalArray.append(result)
-    /* val template: Array[Array[String]] = templates.toLocalIterator.toArray
-    sc = features.sparkContext
-    val finalArray = features.flatMap { iter =>
-      val output: ArrayBuffer[Array[String]] = new ArrayBuffer[Array[String]]()
-      var i: Int = 0
-      while (i < template.length) {
-        val crf = new CRF()
-        val model: Array[String] = crf.learn(template, iter)
-        output.append(model)
-        i += 1
-      }
-      output
-    }.collect()*/
     new CRFModel(finalArray.toArray)
   }
 
